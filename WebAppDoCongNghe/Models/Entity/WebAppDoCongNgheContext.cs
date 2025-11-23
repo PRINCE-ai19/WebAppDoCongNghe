@@ -15,6 +15,8 @@ public partial class WebAppDoCongNgheContext : DbContext
     {
     }
 
+    public virtual DbSet<CauHinhSanPham> CauHinhSanPhams { get; set; }
+
     public virtual DbSet<ChiTietDonHang> ChiTietDonHangs { get; set; }
 
     public virtual DbSet<ChiTietGioHang> ChiTietGioHangs { get; set; }
@@ -37,6 +39,8 @@ public partial class WebAppDoCongNgheContext : DbContext
 
     public virtual DbSet<LoaiTaiKhoan> LoaiTaiKhoans { get; set; }
 
+    public virtual DbSet<PhanQuyen> PhanQuyens { get; set; }
+
     public virtual DbSet<PhieuGiamGium> PhieuGiamGia { get; set; }
 
     public virtual DbSet<SanPham> SanPhams { get; set; }
@@ -46,6 +50,8 @@ public partial class WebAppDoCongNgheContext : DbContext
     public virtual DbSet<SanPhamYeuThich> SanPhamYeuThiches { get; set; }
 
     public virtual DbSet<TaiKhoan> TaiKhoans { get; set; }
+
+    public virtual DbSet<TaiKhoanPhanQuyen> TaiKhoanPhanQuyens { get; set; }
 
     public virtual DbSet<TaiKhoanPhieuGiamGium> TaiKhoanPhieuGiamGia { get; set; }
 
@@ -61,6 +67,15 @@ public partial class WebAppDoCongNgheContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<CauHinhSanPham>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__CauHinhS__3214EC07B84EC819");
+
+            entity.HasOne(d => d.SanPham).WithMany(p => p.CauHinhSanPhams)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CauHinh_SanPham");
+        });
+
         modelBuilder.Entity<ChiTietDonHang>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__ChiTietD__3214EC278A912A9F");
@@ -140,6 +155,11 @@ public partial class WebAppDoCongNgheContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__LoaiTaiK__3214EC274CBDB9E6");
         });
 
+        modelBuilder.Entity<PhanQuyen>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__PhanQuye__3214EC073E79928D");
+        });
+
         modelBuilder.Entity<PhieuGiamGium>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__PhieuGia__3214EC27DEF40ADA");
@@ -177,6 +197,24 @@ public partial class WebAppDoCongNgheContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__TaiKhoan__3214EC275E403E2F");
 
             entity.HasOne(d => d.IdLoaiTaiKhoanNavigation).WithMany(p => p.TaiKhoans).HasConstraintName("FK__TaiKhoan__IdLoai__4E88ABD4");
+        });
+
+        modelBuilder.Entity<TaiKhoanPhanQuyen>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__TaiKhoan__3214EC071AED5285");
+
+            entity.Property(e => e.QuyenSua).HasDefaultValue(false);
+            entity.Property(e => e.QuyenThem).HasDefaultValue(false);
+            entity.Property(e => e.QuyenXem).HasDefaultValue(false);
+            entity.Property(e => e.QuyenXoa).HasDefaultValue(false);
+
+            entity.HasOne(d => d.IdChucNangNavigation).WithMany(p => p.TaiKhoanPhanQuyens)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TK_PQ_ChucNang");
+
+            entity.HasOne(d => d.IdTaiKhoanNavigation).WithMany(p => p.TaiKhoanPhanQuyens)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TK_PQ_TaiKhoan");
         });
 
         modelBuilder.Entity<TaiKhoanPhieuGiamGium>(entity =>

@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebAppDoCongNghe.Models.ApiRespone;
 using WebAppDoCongNghe.Models.Entity;
 using WebAppDoCongNghe.Models.model;
+using WebAppDoCongNghe.Service;
 
 namespace WebAppDoCongNghe.Controllers
 {
@@ -12,10 +14,12 @@ namespace WebAppDoCongNghe.Controllers
     public class TaiKhoanController : ControllerBase
     {
         private readonly WebAppDoCongNgheContext _context;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public TaiKhoanController(WebAppDoCongNgheContext context)
+        public TaiKhoanController(WebAppDoCongNgheContext context, ICloudinaryService cloudinaryService)
         {
             _context = context;
+            _cloudinaryService = cloudinaryService;
         }
 
         [HttpGet("paging")]
@@ -34,6 +38,7 @@ namespace WebAppDoCongNghe.Controllers
                     email = x.Email,
                     soDienThoai = x.SoDienThoai,
                     diaChi = x.DiaChi,
+                    hinhAnh = x.HinhAnh,
                     ngayTao = x.NgayDangKy,
                     idLoaiTaiKhoan = x.IdLoaiTaiKhoan,
                     idLoaiTaiKhoanNavigation = x.IdLoaiTaiKhoanNavigation == null
@@ -49,9 +54,9 @@ namespace WebAppDoCongNghe.Controllers
 
             var items = query
                 .OrderByDescending(x => x.id)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
+                      .Skip((page - 1) * pageSize)
+                      .Take(pageSize)
+                      .ToList();
 
             return Ok(new
             {
@@ -80,6 +85,7 @@ namespace WebAppDoCongNghe.Controllers
                     email = x.Email,
                     soDienThoai = x.SoDienThoai,
                     diaChi = x.DiaChi,
+                    hinhAnh = x.HinhAnh,
                     ngayTao = x.NgayDangKy,
                     idLoaiTaiKhoan = x.IdLoaiTaiKhoan,
                     idLoaiTaiKhoanNavigation = x.IdLoaiTaiKhoanNavigation == null
@@ -91,7 +97,7 @@ namespace WebAppDoCongNghe.Controllers
                         }
                 })
                 .ToList();
-
+          
             return Ok(new ApiRespone
             {
                 Success = true,
@@ -115,6 +121,7 @@ namespace WebAppDoCongNghe.Controllers
                     soDienThoai = x.SoDienThoai,
                     diaChi = x.DiaChi,
                     ngayTao = x.NgayDangKy,
+                    hinhAnh = x.HinhAnh,
                     idLoaiTaiKhoan = x.IdLoaiTaiKhoan,
                     idLoaiTaiKhoanNavigation = x.IdLoaiTaiKhoanNavigation == null
                         ? null
@@ -197,6 +204,142 @@ namespace WebAppDoCongNghe.Controllers
                 Success = true,
                 Message = "Xóa tài khoản thành công"
             });
+        }
+
+        [HttpGet("LoaiTaiKhoan")]
+        public IActionResult GetAllLoaiTaiKhoan()
+        {
+            try
+            {
+                var list = _context.LoaiTaiKhoans
+                    .AsNoTracking()
+                    .Select(x => new
+                    {
+                        id = x.Id,
+                        tenLoai = x.TenLoaiTaiKhoan
+                    })
+                    .ToList();
+
+                return Ok(new ApiRespone
+                {
+                    Success = true,
+                    Message = "Lấy danh sách loại tài khoản thành công",
+                    Data = list
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiRespone
+                {
+                    Success = false,
+                    Message = $"Lỗi khi lấy danh sách loại tài khoản: {ex.Message}",
+                    Data = null
+                });
+            }
+        }
+
+        [HttpPut("UpdateProfile/{id}")]
+        public async Task<IActionResult> UpdateProfile(int id, [FromForm] UpdateProfileRequest model)
+        {
+            try
+            {
+                // Kiểm tra ModelState validation
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    
+                    return BadRequest(new ApiRespone
+                    {
+                        Success = false,
+                        Message = string.Join(", ", errors),
+                        Data = null
+                    });
+                }
+
+                var tk = await _context.TaiKhoans.FindAsync(id);
+
+                if (tk == null)
+                {
+                    return NotFound(new ApiRespone
+                    {
+                        Success = false,
+                        Message = "Không tìm thấy tài khoản"
+                    });
+                }
+
+                // Cập nhật thông tin cơ bản
+                tk.HoTen = model.HoTen;
+                tk.Email = model.Email;
+                tk.SoDienThoai = model.SoDienThoai;
+                tk.DiaChi = model.DiaChi;
+
+                // Upload ảnh nếu có
+                if (model.HinhAnh != null && model.HinhAnh.Length > 0)
+                {
+                    try
+                    {
+                        var imageUrl = await _cloudinaryService.UploadImageAsync(model.HinhAnh, "TaiKhoan");
+                        if (!string.IsNullOrEmpty(imageUrl))
+                        {
+                            tk.HinhAnh = imageUrl;
+                        }
+                    }
+                    catch (Exception imgEx)
+                    {
+                        return BadRequest(new ApiRespone
+                        {
+                            Success = false,
+                            Message = $"Lỗi khi upload ảnh: {imgEx.Message}",
+                            Data = null
+                        });
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                // Trả về thông tin đã cập nhật
+                var updatedTk = _context.TaiKhoans
+                    .Include(x => x.IdLoaiTaiKhoanNavigation)
+                    .Where(x => x.Id == id)
+                    .Select(x => new
+                    {
+                        id = x.Id,
+                        hoTen = x.HoTen,
+                        email = x.Email,
+                        soDienThoai = x.SoDienThoai,
+                        diaChi = x.DiaChi,
+                        hinhAnh = x.HinhAnh,
+                        ngayTao = x.NgayDangKy,
+                        idLoaiTaiKhoan = x.IdLoaiTaiKhoan,
+                        idLoaiTaiKhoanNavigation = x.IdLoaiTaiKhoanNavigation == null
+                            ? null
+                            : new
+                            {
+                                id = x.IdLoaiTaiKhoanNavigation.Id,
+                                tenLoai = x.IdLoaiTaiKhoanNavigation.TenLoaiTaiKhoan
+                            }
+                    })
+                    .FirstOrDefault();
+
+                return Ok(new ApiRespone
+                {
+                    Success = true,
+                    Message = "Cập nhật thông tin thành công",
+                    Data = updatedTk
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiRespone
+                {
+                    Success = false,
+                    Message = $"Lỗi khi cập nhật thông tin: {ex.Message}",
+                    Data = null
+                });
+            }
         }
 
     }

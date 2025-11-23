@@ -73,6 +73,7 @@ namespace WebAppDoCongNghe.Controllers
                     user.Id,
                     user.HoTen,
                     user.Email,
+                    user.HinhAnh,
                     Role = role,
                     Token = token
                 }

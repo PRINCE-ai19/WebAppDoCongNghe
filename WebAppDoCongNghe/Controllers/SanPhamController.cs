@@ -22,34 +22,83 @@ namespace WebAppDoCongNghe.Controllers
             _cloudinaryService = cloudinaryService;
         }
 
+        // Helper method để tính giá giảm từ khuyến mãi đang active
+        private decimal? TinhGiaGiamTuKhuyenMai(decimal giaGoc, int sanPhamId)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            
+            // Lấy khuyến mãi đang active cho sản phẩm này
+            var khuyenMaiActive = _context.SanPhamKhuyenMais
+                .Include(spkm => spkm.KhuyenMai)
+                .Where(spkm => spkm.SanPhamId == sanPhamId 
+                    && spkm.KhuyenMai != null
+                    && spkm.KhuyenMai.NgayBatDau <= today 
+                    && spkm.KhuyenMai.NgayKetThuc >= today
+                    && spkm.KhuyenMai.PhanTramGiam.HasValue)
+                .Select(spkm => spkm.KhuyenMai.PhanTramGiam.Value)
+                .OrderByDescending(pt => pt)
+                .FirstOrDefault();
+
+            if (khuyenMaiActive > 0)
+            {
+                // Tính giá giảm: giá gốc * (1 - phần trăm giảm / 100)
+                return giaGoc * (1 - khuyenMaiActive / 100);
+            }
+
+            return null;
+        }
+
 
         [HttpGet("paging")]
         public IActionResult GetPaging(int page , int pageSize )
         {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            
             var query = _context.SanPhams
                 .Include(p => p.DanhMuc)
                 .Include(p => p.HinhAnhSanPhams)
-                .Select(p => new
-                {
-                    p.Id,
-                    p.TenSanPham,
-                    p.ThuongHieu,
-                    p.Gia,
-                    p.GiaGiam,
-                    p.SoLuongTon,
-                    p.MoTa,
-                    p.HienThi,
-                    HinhAnhDaiDien = p.HinhAnhSanPhams.Select(r => r.HinhAnh).FirstOrDefault(),
-                    HinhAnh = p.HinhAnhSanPhams.Select(r => new
-                    {
-                        r.Id,
-                        r.SanPhamId,
-                        r.HinhAnh,
-                    }).ToList(),
-                    p.NgayThem,
-                    DanhMuc = p.DanhMuc != null ? p.DanhMuc.TenDanhMuc : null
-                })
+                .Include(p => p.SanPhamKhuyenMais)
+                    .ThenInclude(spkm => spkm.KhuyenMai)
                 .ToList()
+                .Select(p => {
+                    // Tính giá giảm từ khuyến mãi đang active
+                    var khuyenMaiActive = p.SanPhamKhuyenMais
+                        .Where(spkm => spkm.KhuyenMai != null
+                            && spkm.KhuyenMai.NgayBatDau <= today 
+                            && spkm.KhuyenMai.NgayKetThuc >= today
+                            && spkm.KhuyenMai.PhanTramGiam.HasValue)
+                        .Select(spkm => spkm.KhuyenMai.PhanTramGiam.Value)
+                        .OrderByDescending(pt => pt)
+                        .FirstOrDefault();
+
+                    var giaGiamTuKhuyenMai = khuyenMaiActive > 0 
+                        ? p.Gia * (1 - khuyenMaiActive / 100) 
+                        : (decimal?)null;
+
+                    // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ
+                    var giaGiamCuoiCung = giaGiamTuKhuyenMai ?? p.GiaGiam;
+
+                    return new
+                    {
+                        p.Id,
+                        p.TenSanPham,
+                        p.ThuongHieu,
+                        p.Gia,
+                        GiaGiam = giaGiamCuoiCung,
+                        p.SoLuongTon,
+                        p.MoTa,
+                        p.HienThi,
+                        HinhAnhDaiDien = p.HinhAnhSanPhams.Select(r => r.HinhAnh).FirstOrDefault(),
+                        HinhAnh = p.HinhAnhSanPhams.Select(r => new
+                        {
+                            r.Id,
+                            r.SanPhamId,
+                            r.HinhAnh,
+                        }).ToList(),
+                        p.NgayThem,
+                        DanhMuc = p.DanhMuc != null ? p.DanhMuc.TenDanhMuc : null
+                    };
+                })
                 .AsQueryable();
 
             int total = query.Count();
@@ -75,23 +124,46 @@ namespace WebAppDoCongNghe.Controllers
        [HttpGet]
         public IActionResult GetAll()
         {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            
             var products = _context.SanPhams
                 .Include(p => p.DanhMuc)
                 .Include(p => p.HinhAnhSanPhams)
-                .Select(p => new
-                {
-                    p.Id,
-                    p.TenSanPham,
-                    p.ThuongHieu,
-                    p.Gia,
-                    p.GiaGiam,
-                    p.SoLuongTon,
-                    p.MoTa,
-                    p.HienThi,
-                    HinhAnhDaiDien = p.HinhAnhSanPhams.Select(r => r.HinhAnh).FirstOrDefault(),
-                   
-                    p.NgayThem,
-                    DanhMuc = p.DanhMuc != null ? p.DanhMuc.TenDanhMuc : null
+                .Include(p => p.SanPhamKhuyenMais)
+                    .ThenInclude(spkm => spkm.KhuyenMai)
+                .ToList()
+                .Select(p => {
+                    // Tính giá giảm từ khuyến mãi đang active
+                    var khuyenMaiActive = p.SanPhamKhuyenMais
+                        .Where(spkm => spkm.KhuyenMai != null
+                            && spkm.KhuyenMai.NgayBatDau <= today 
+                            && spkm.KhuyenMai.NgayKetThuc >= today
+                            && spkm.KhuyenMai.PhanTramGiam.HasValue)
+                        .Select(spkm => spkm.KhuyenMai.PhanTramGiam.Value)
+                        .OrderByDescending(pt => pt)
+                        .FirstOrDefault();
+
+                    var giaGiamTuKhuyenMai = khuyenMaiActive > 0 
+                        ? p.Gia * (1 - khuyenMaiActive / 100) 
+                        : (decimal?)null;
+
+                    // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ
+                    var giaGiamCuoiCung = giaGiamTuKhuyenMai ?? p.GiaGiam;
+
+                    return new
+                    {
+                        p.Id,
+                        p.TenSanPham,
+                        p.ThuongHieu,
+                        p.Gia,
+                        GiaGiam = giaGiamCuoiCung,
+                        p.SoLuongTon,
+                        p.MoTa,
+                        p.HienThi,
+                        HinhAnhDaiDien = p.HinhAnhSanPhams.Select(r => r.HinhAnh).FirstOrDefault(),
+                        p.NgayThem,
+                        DanhMuc = p.DanhMuc != null ? p.DanhMuc.TenDanhMuc : null
+                    };
                 })
                 .ToList();
 
@@ -106,9 +178,14 @@ namespace WebAppDoCongNghe.Controllers
         [HttpGet("{id}")]
         public IActionResult GetById(int id)
         {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            
             var product = _context.SanPhams
                 .Include(p => p.DanhMuc)
                 .Include(p => p.HinhAnhSanPhams)
+                .Include(p => p.CauHinhSanPhams)
+                .Include(p => p.SanPhamKhuyenMais)
+                    .ThenInclude(spkm => spkm.KhuyenMai)
                 .FirstOrDefault(p => p.Id == id);
 
             if (product == null)
@@ -120,22 +197,50 @@ namespace WebAppDoCongNghe.Controllers
                 });
             }
 
+            // Tính giá giảm từ khuyến mãi đang active
+            var khuyenMaiActive = product.SanPhamKhuyenMais
+                .Where(spkm => spkm.KhuyenMai != null
+                    && spkm.KhuyenMai.NgayBatDau <= today 
+                    && spkm.KhuyenMai.NgayKetThuc >= today
+                    && spkm.KhuyenMai.PhanTramGiam.HasValue)
+                .Select(spkm => spkm.KhuyenMai.PhanTramGiam.Value)
+                .OrderByDescending(pt => pt)
+                .FirstOrDefault();
+
+            var giaGiamTuKhuyenMai = khuyenMaiActive > 0 
+                ? product.Gia * (1 - khuyenMaiActive / 100) 
+                : (decimal?)null;
+
+            // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ
+            var giaGiamCuoiCung = giaGiamTuKhuyenMai ?? product.GiaGiam;
+
             var imageList = product.HinhAnhSanPhams?
                                    .Select(img => img.HinhAnh) // lấy URL ảnh Cloudinary
                                   .ToList();
+
+            var cauHinhList = product.CauHinhSanPhams?
+                .Select(ch => new
+                {
+                    Id = ch.Id,
+                    TenThongSo = ch.TenThongSo,
+                    GiaTri = ch.GiaTri
+                })
+                .ToList();
 
             var result = new
             {
                 Id = product.Id,
                 TenSanPham = product.TenSanPham,
                 Gia = product.Gia,
+                GiaGiam = giaGiamCuoiCung,
                 MoTa = product.MoTa,
                 SoLuongTon = product.SoLuongTon,
                 NgayThem = product.NgayThem,
                 ThuongHieu = product.ThuongHieu,
                 DanhMuc = product.DanhMuc?.TenDanhMuc,
                 Hienthi = product.HienThi,
-                HinhAnhList = imageList
+                HinhAnhList = imageList,
+                CauHinhSanPhams = cauHinhList
             };
 
 
@@ -151,10 +256,14 @@ namespace WebAppDoCongNghe.Controllers
         [HttpGet("category/{categoryId}")]
         public IActionResult GetByCategory(int categoryId)
         {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            
             var products = _context.SanPhams
                .Where(p => p.DanhMucId == categoryId)
                .Include(p => p.DanhMuc)
                .Include(p => p.HinhAnhSanPhams)
+               .Include(p => p.SanPhamKhuyenMais)
+                   .ThenInclude(spkm => spkm.KhuyenMai)
                .ToList();
 
 
@@ -168,21 +277,41 @@ namespace WebAppDoCongNghe.Controllers
             }
 
 
-            var result = products.Select(p => new
-            {
-                Id = p.Id,
-                TenSanPham = p.TenSanPham,
-                Gia = p.Gia,
-                MoTa = p.MoTa,
-                SoLuongTon = p.SoLuongTon,
-                NgayThem = p.NgayThem,
-                ThuongHieu = p.ThuongHieu,
-                DanhMuc = p.DanhMuc?.TenDanhMuc,
+            var result = products.Select(p => {
+                // Tính giá giảm từ khuyến mãi đang active
+                var khuyenMaiActive = p.SanPhamKhuyenMais
+                    .Where(spkm => spkm.KhuyenMai != null
+                        && spkm.KhuyenMai.NgayBatDau <= today 
+                        && spkm.KhuyenMai.NgayKetThuc >= today
+                        && spkm.KhuyenMai.PhanTramGiam.HasValue)
+                    .Select(spkm => spkm.KhuyenMai.PhanTramGiam.Value)
+                    .OrderByDescending(pt => pt)
+                    .FirstOrDefault();
 
-                // Ảnh đại diện: lấy URL đầu tiên trong danh sách hình của sản phẩm
-                AnhDaiDien = p.HinhAnhSanPhams != null && p.HinhAnhSanPhams.Any()
-               ? p.HinhAnhSanPhams.First().HinhAnh
-               : null
+                var giaGiamTuKhuyenMai = khuyenMaiActive > 0 
+                    ? p.Gia * (1 - khuyenMaiActive / 100) 
+                    : (decimal?)null;
+
+                // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ
+                var giaGiamCuoiCung = giaGiamTuKhuyenMai ?? p.GiaGiam;
+
+                return new
+                {
+                    Id = p.Id,
+                    TenSanPham = p.TenSanPham,
+                    Gia = p.Gia,
+                    GiaGiam = giaGiamCuoiCung,
+                    MoTa = p.MoTa,
+                    SoLuongTon = p.SoLuongTon,
+                    NgayThem = p.NgayThem,
+                    ThuongHieu = p.ThuongHieu,
+                    DanhMuc = p.DanhMuc?.TenDanhMuc,
+
+                    // Ảnh đại diện: lấy URL đầu tiên trong danh sách hình của sản phẩm
+                    AnhDaiDien = p.HinhAnhSanPhams != null && p.HinhAnhSanPhams.Any()
+                   ? p.HinhAnhSanPhams.First().HinhAnh
+                   : null
+                };
             }).ToList();
 
 
@@ -379,26 +508,49 @@ namespace WebAppDoCongNghe.Controllers
                 });
             }
 
+            var today = DateOnly.FromDateTime(DateTime.Now);
+
             var products = _context.SanPhams
                 .Include(p => p.DanhMuc)
                 .Include(p => p.HinhAnhSanPhams)
+                .Include(p => p.SanPhamKhuyenMais)
+                    .ThenInclude(spkm => spkm.KhuyenMai)
                 .Where(p =>
                     EF.Functions.Like(p.TenSanPham, $"%{keyword}%") ||
                     EF.Functions.Like(p.ThuongHieu, $"%{keyword}%") ||
                     EF.Functions.Like(p.MoTa, $"%{keyword}%"))
+                .ToList()
+                .Select(p => {
+                    // Tính giá giảm từ khuyến mãi đang active
+                    var khuyenMaiActive = p.SanPhamKhuyenMais
+                        .Where(spkm => spkm.KhuyenMai != null
+                            && spkm.KhuyenMai.NgayBatDau <= today 
+                            && spkm.KhuyenMai.NgayKetThuc >= today
+                            && spkm.KhuyenMai.PhanTramGiam.HasValue)
+                        .Select(spkm => spkm.KhuyenMai.PhanTramGiam.Value)
+                        .OrderByDescending(pt => pt)
+                        .FirstOrDefault();
 
-                .Select(p => new
-                {
-                    p.Id,
-                    p.TenSanPham,
-                    p.ThuongHieu,
-                    p.Gia,
-                    p.GiaGiam,
-                    p.SoLuongTon,
-                    p.MoTa,
-                    HinhAnhDaiDien = p.HinhAnhSanPhams.Select(r => r.HinhAnh).FirstOrDefault(),
-                    p.NgayThem,
-                    DanhMuc = p.DanhMuc != null ? p.DanhMuc.TenDanhMuc : null
+                    var giaGiamTuKhuyenMai = khuyenMaiActive > 0 
+                        ? p.Gia * (1 - khuyenMaiActive / 100) 
+                        : (decimal?)null;
+
+                    // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ
+                    var giaGiamCuoiCung = giaGiamTuKhuyenMai ?? p.GiaGiam;
+
+                    return new
+                    {
+                        p.Id,
+                        p.TenSanPham,
+                        p.ThuongHieu,
+                        p.Gia,
+                        GiaGiam = giaGiamCuoiCung,
+                        p.SoLuongTon,
+                        p.MoTa,
+                        HinhAnhDaiDien = p.HinhAnhSanPhams.Select(r => r.HinhAnh).FirstOrDefault(),
+                        p.NgayThem,
+                        DanhMuc = p.DanhMuc != null ? p.DanhMuc.TenDanhMuc : null
+                    };
                 })
                 .ToList();
 

@@ -17,6 +17,33 @@ namespace WebAppDoCongNghe.Controllers
             _context = context;
         }
 
+        // Helper method để tính giá giảm từ khuyến mãi
+        private decimal TinhGiaGiamTuKhuyenMai(decimal giaGoc, int sanPhamId)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            
+            // Lấy khuyến mãi đang active cho sản phẩm này
+            var khuyenMaiActive = _context.SanPhamKhuyenMais
+                .Include(spkm => spkm.KhuyenMai)
+                .Where(spkm => spkm.SanPhamId == sanPhamId 
+                    && spkm.KhuyenMai != null
+                    && spkm.KhuyenMai.NgayBatDau <= today 
+                    && spkm.KhuyenMai.NgayKetThuc >= today
+                    && spkm.KhuyenMai.PhanTramGiam.HasValue)
+                .Select(spkm => spkm.KhuyenMai.PhanTramGiam.Value)
+                .OrderByDescending(pt => pt)
+                .FirstOrDefault();
+
+            if (khuyenMaiActive > 0)
+            {
+                // Tính giá giảm: giá gốc * (1 - phần trăm giảm / 100)
+                return giaGoc * (1 - khuyenMaiActive / 100);
+            }
+
+            // Nếu không có khuyến mãi, trả về giá gốc
+            return giaGoc;
+        }
+
         // lấy giỏ hàng 
         [HttpGet("paging")]
         public IActionResult GetPagingGH(int page, int pageSize)
@@ -196,7 +223,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new { success = true, message = "Cập nhật số lượng thành công." });
         }
 
-        // . Xóa 1 sản phẩm khỏi giỏ hàng
+        // Xóa 1 sản phẩm khỏi giỏ hàng
         [HttpDelete("Xoa/{chiTietId}")]
         public IActionResult XoaSanPham(int chiTietId)
         {
@@ -210,7 +237,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new { success = true, message = "Đã xóa sản phẩm khỏi giỏ hàng" });
         }
 
-        //. Xóa toàn bộ giỏ hàng (clear)
+        // Xóa toàn bộ giỏ hàng (clear)
         [HttpDelete("Clear/{taiKhoanId}")]
         public IActionResult XoaTatCa(int taiKhoanId)
         {
@@ -248,19 +275,34 @@ namespace WebAppDoCongNghe.Controllers
                 });
             }
 
-            var data = gioHang.ChiTietGioHangs.Select(c => new
-            {
-                ChiTietId = c.Id,
-                SanPhamId = c.SanPhamId,
-                TenSanPham = c.SanPham?.TenSanPham,
-                Gia = c.SanPham?.Gia ?? 0,
-                SoLuong = c.SoLuong ?? 0,
-                ThanhTien = (c.SanPham?.Gia ?? 0) * (c.SoLuong ?? 0),
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            var data = gioHang.ChiTietGioHangs.Select(c => {
+                var giaGoc = c.SanPham?.Gia ?? 0;
+                var sanPhamId = c.SanPhamId ?? 0;
+                
+                // Tính giá giảm từ khuyến mãi
+                var giaGiamTuKhuyenMai = TinhGiaGiamTuKhuyenMai(giaGoc, sanPhamId);
+                
+                // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ hoặc giá gốc
+                var giaCuoiCung = giaGiamTuKhuyenMai < giaGoc ? giaGiamTuKhuyenMai : (c.SanPham?.GiaGiam ?? giaGoc);
+                var soLuong = c.SoLuong ?? 0;
+                var thanhTien = giaCuoiCung * soLuong;
 
-                //  Lấy URL ảnh đầu tiên từ Cloudinary
-                AnhDaiDien = c.SanPham?.HinhAnhSanPhams != null && c.SanPham.HinhAnhSanPhams.Any()
-            ? c.SanPham.HinhAnhSanPhams.First().HinhAnh // hoặc .DuongDan nếu bạn đặt tên khác
-            : null
+                return new
+                {
+                    ChiTietId = c.Id,
+                    SanPhamId = c.SanPhamId,
+                    TenSanPham = c.SanPham?.TenSanPham,
+                    Gia = giaGoc,
+                    GiaGiam = giaCuoiCung,
+                    SoLuong = soLuong,
+                    ThanhTien = thanhTien,
+
+                    //  Lấy URL ảnh đầu tiên từ Cloudinary
+                    AnhDaiDien = c.SanPham?.HinhAnhSanPhams != null && c.SanPham.HinhAnhSanPhams.Any()
+                ? c.SanPham.HinhAnhSanPhams.First().HinhAnh // hoặc .DuongDan nếu bạn đặt tên khác
+                : null
+                };
             }).ToList();
 
             var tongTien = data.Sum(x => x.ThanhTien);

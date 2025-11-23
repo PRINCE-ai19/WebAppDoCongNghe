@@ -41,6 +41,9 @@ public partial class TaiKhoan
     [Column(TypeName = "datetime")]
     public DateTime? OtpExpire { get; set; }
 
+    [StringLength(255)]
+    public string? HinhAnh { get; set; }
+
     [InverseProperty("TaiKhoan")]
     public virtual ICollection<DanhGium> DanhGia { get; set; } = new List<DanhGium>();
 
@@ -56,6 +59,9 @@ public partial class TaiKhoan
 
     [InverseProperty("TaiKhoan")]
     public virtual ICollection<SanPhamYeuThich> SanPhamYeuThiches { get; set; } = new List<SanPhamYeuThich>();
+
+    [InverseProperty("IdTaiKhoanNavigation")]
+    public virtual ICollection<TaiKhoanPhanQuyen> TaiKhoanPhanQuyens { get; set; } = new List<TaiKhoanPhanQuyen>();
 
     [InverseProperty("TaiKhoan")]
     public virtual ICollection<TaiKhoanPhieuGiamGium> TaiKhoanPhieuGiamGia { get; set; } = new List<TaiKhoanPhieuGiamGium>();

@@ -38,6 +38,9 @@ public partial class SanPham
     public bool? HienThi { get; set; }
 
     [InverseProperty("SanPham")]
+    public virtual ICollection<CauHinhSanPham> CauHinhSanPhams { get; set; } = new List<CauHinhSanPham>();
+
+    [InverseProperty("SanPham")]
     public virtual ICollection<ChiTietDonHang> ChiTietDonHangs { get; set; } = new List<ChiTietDonHang>();
 
     [InverseProperty("SanPham")]

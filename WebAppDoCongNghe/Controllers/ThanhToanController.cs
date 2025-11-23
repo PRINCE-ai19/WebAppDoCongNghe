@@ -41,6 +41,33 @@ namespace WebAppDoCongNghe.Controllers
             _hubContext = hubContext;
         }
 
+        // Helper method để tính giá giảm từ khuyến mãi
+        private decimal TinhGiaGiamTuKhuyenMai(decimal giaGoc, int sanPhamId)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            
+            // Lấy khuyến mãi đang active cho sản phẩm này
+            var khuyenMaiActive = _context.SanPhamKhuyenMais
+                .Include(spkm => spkm.KhuyenMai)
+                .Where(spkm => spkm.SanPhamId == sanPhamId 
+                    && spkm.KhuyenMai != null
+                    && spkm.KhuyenMai.NgayBatDau <= today 
+                    && spkm.KhuyenMai.NgayKetThuc >= today
+                    && spkm.KhuyenMai.PhanTramGiam.HasValue)
+                .Select(spkm => spkm.KhuyenMai.PhanTramGiam.Value)
+                .OrderByDescending(pt => pt)
+                .FirstOrDefault();
+
+            if (khuyenMaiActive > 0)
+            {
+                // Tính giá giảm: giá gốc * (1 - phần trăm giảm / 100)
+                return giaGoc * (1 - khuyenMaiActive / 100);
+            }
+
+            // Nếu không có khuyến mãi, trả về giá gốc
+            return giaGoc;
+        }
+
         [HttpGet("ThanhToan/Xem/{taiKhoanId}")]
         public IActionResult XemSanPhamThanhToan(int taiKhoanId)
         {
@@ -68,11 +95,7 @@ namespace WebAppDoCongNghe.Controllers
             var sanPhamIds = chiTietList.Select(c => c.SanPhamId).ToList();
             var sanPhamDict = _context.SanPhams
                 .Where(sp => sanPhamIds.Contains(sp.Id))
-                .ToDictionary(sp => sp.Id, sp => new
-                {
-                    sp.TenSanPham,
-                    sp.Gia
-                });
+                .ToDictionary(sp => sp.Id, sp => sp);
 
             // 🔹 Lấy hình ảnh đầu tiên của mỗi sản phẩm
             var hinhAnhDict = _context.HinhAnhSanPhams
@@ -80,18 +103,27 @@ namespace WebAppDoCongNghe.Controllers
                 .GroupBy(h => h.SanPhamId)
                 .ToDictionary(g => g.Key, g => g.Select(x => x.HinhAnh).FirstOrDefault());
 
-            // 🔹 Gộp dữ liệu
+            // 🔹 Gộp dữ liệu và tính giá giảm từ khuyến mãi
             var data = chiTietList.Select(c =>
             {
-                var sp = sanPhamDict[c.SanPhamId.GetValueOrDefault()];
-                var anh = hinhAnhDict.ContainsKey(c.SanPhamId.GetValueOrDefault()) ? hinhAnhDict[c.SanPhamId.GetValueOrDefault()] : null;
-                var thanhTien = sp.Gia * c.SoLuong;
+                var sanPhamId = c.SanPhamId.GetValueOrDefault();
+                var sp = sanPhamDict[sanPhamId];
+                var anh = hinhAnhDict.ContainsKey(sanPhamId) ? hinhAnhDict[sanPhamId] : null;
+                
+                // Tính giá giảm từ khuyến mãi
+                var giaGoc = sp.Gia;
+                var giaGiamTuKhuyenMai = TinhGiaGiamTuKhuyenMai(giaGoc, sanPhamId);
+                
+                // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ hoặc giá gốc
+                var giaCuoiCung = giaGiamTuKhuyenMai < giaGoc ? giaGiamTuKhuyenMai : (sp.GiaGiam ?? giaGoc);
+                var thanhTien = giaCuoiCung * c.SoLuong;
 
                 return new
                 {
                     SanPhamId = c.SanPhamId,
                     TenSanPham = sp.TenSanPham,
-                    Gia = sp.Gia,
+                    Gia = giaGoc,
+                    GiaGiam = giaCuoiCung,
                     SoLuong = c.SoLuong,
                     ThanhTien = thanhTien,
                     AnhDaiDien = anh
@@ -190,7 +222,14 @@ namespace WebAppDoCongNghe.Controllers
             {
                 if (sanPhamDict.TryGetValue(item.SanPhamId.GetValueOrDefault(), out var sanPham))
                 {
-                    tongTien += sanPham.Gia * item.SoLuong;
+                    // Tính giá giảm từ khuyến mãi
+                    var giaGoc = sanPham.Gia;
+                    var giaGiamTuKhuyenMai = TinhGiaGiamTuKhuyenMai(giaGoc, sanPham.Id);
+                    
+                    // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ hoặc giá gốc
+                    var giaCuoiCung = giaGiamTuKhuyenMai < giaGoc ? giaGiamTuKhuyenMai : (sanPham.GiaGiam ?? giaGoc);
+                    
+                    tongTien += giaCuoiCung * item.SoLuong;
                 }
             }
 
@@ -352,12 +391,19 @@ namespace WebAppDoCongNghe.Controllers
             {
                 if (sanPhamDict.TryGetValue(item.SanPhamId.GetValueOrDefault(), out var sanPham))
                 {
+                    // Tính giá giảm từ khuyến mãi để lưu vào đơn hàng
+                    var giaGoc = sanPham.Gia;
+                    var giaGiamTuKhuyenMai = TinhGiaGiamTuKhuyenMai(giaGoc, sanPham.Id);
+                    
+                    // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ hoặc giá gốc
+                    var giaCuoiCung = giaGiamTuKhuyenMai < giaGoc ? giaGiamTuKhuyenMai : (sanPham.GiaGiam ?? giaGoc);
+                    
                     _context.ChiTietDonHangs.Add(new ChiTietDonHang
                     {
                         DonHangId = donHang.Id,
                         SanPhamId = item.SanPhamId,
                         SoLuong = item.SoLuong,
-                        DonGia = sanPham.Gia
+                        DonGia = giaCuoiCung // Lưu giá giảm vào đơn hàng
                     });
                     if (item.SoLuong > sanPham.SoLuongTon)
                     {
@@ -483,12 +529,19 @@ namespace WebAppDoCongNghe.Controllers
 
                             if (sanPhamDict.TryGetValue(sanPhamId, out var sanPham))
                             {
+                                // Tính giá giảm từ khuyến mãi để lưu vào đơn hàng
+                                var giaGoc = sanPham.Gia;
+                                var giaGiamTuKhuyenMai = TinhGiaGiamTuKhuyenMai(giaGoc, sanPham.Id);
+                                
+                                // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ hoặc giá gốc
+                                var giaCuoiCung = giaGiamTuKhuyenMai < giaGoc ? giaGiamTuKhuyenMai : (sanPham.GiaGiam ?? giaGoc);
+                                
                                 _context.ChiTietDonHangs.Add(new ChiTietDonHang
                                 {
                                     DonHangId = donHang.Id,
                                     SanPhamId = sanPhamId,
                                     SoLuong = soLuong,
-                                    DonGia = sanPham.Gia
+                                    DonGia = giaCuoiCung // Lưu giá giảm vào đơn hàng
                                 });
 
                                 if (soLuong > sanPham.SoLuongTon)
@@ -616,6 +669,11 @@ namespace WebAppDoCongNghe.Controllers
             color: #4b5563;
             margin-bottom: 30px;
         }
+        .countdown {
+            color: #16a34a;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
         .btn {
             display: inline-block;
             background-color: #16a34a;
@@ -630,13 +688,32 @@ namespace WebAppDoCongNghe.Controllers
             background-color: #15803d;
         }
     </style>
+    <script>
+        let countdown = 5;
+        const countdownElement = document.getElementById('countdown');
+        
+        function updateCountdown() {
+            if (countdownElement) {
+                countdownElement.textContent = 'Tự động chuyển về trang chủ sau ' + countdown + ' giây...';
+            }
+            countdown--;
+            if (countdown < 0) {
+                window.location.href = 'http://localhost:5173/';
+            }
+        }
+        
+        window.onload = function() {
+            setInterval(updateCountdown, 1000);
+        };
+    </script>
 </head>
 <body>
     <div class='container'>
         <div class='checkmark'>✓</div>
         <h1>Thanh toán thành công!</h1>
         <p>Cảm ơn bạn đã mua hàng.<br>Đơn hàng của bạn đang được xử lý.</p>
-        <a href='/' class='btn'>Về trang chủ</a>
+        <p class='countdown' id='countdown'>Tự động chuyển về trang chủ sau 5 giây...</p>
+        <a href='http://localhost:5173/' class='btn'>Về trang chủ ngay</a>
     </div>
 </body>
 </html>";
