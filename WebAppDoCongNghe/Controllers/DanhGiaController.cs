@@ -19,10 +19,7 @@ namespace WebAppDoCongNghe.Controllers
             _context = context;
         }
 
-        /// <summary>
-        /// Tạo đánh giá sản phẩm (chỉ khi đã mua sản phẩm)
-        /// POST /api/DanhGia
-        /// </summary>
+    
         [HttpPost]
         public IActionResult CreateDanhGia([FromBody] DanhGiaRequest request, [FromQuery] int taiKhoanId)
         {
@@ -125,10 +122,7 @@ namespace WebAppDoCongNghe.Controllers
             }
         }
 
-        /// <summary>
-        /// Sửa đánh giá (chỉ user tạo mới sửa được)
-        /// PUT /api/DanhGia/{id}
-        /// </summary>
+    
         [HttpPut("{id}")]
         public IActionResult UpdateDanhGia(int id, [FromBody] DanhGiaRequest request, [FromQuery] int taiKhoanId)
         {
@@ -196,10 +190,7 @@ namespace WebAppDoCongNghe.Controllers
             }
         }
 
-        /// <summary>
-        /// Xóa đánh giá (chỉ user tạo mới xóa được)
-        /// DELETE /api/DanhGia/{id}
-        /// </summary>
+       
         [HttpDelete("{id}")]
         public IActionResult DeleteDanhGia(int id, [FromQuery] int taiKhoanId)
         {
@@ -285,7 +276,8 @@ namespace WebAppDoCongNghe.Controllers
                         {
                             d.TaiKhoan.Id,
                             d.TaiKhoan.HoTen,
-                            d.TaiKhoan.Email
+                            d.TaiKhoan.Email,
+                            d.TaiKhoan.HinhAnh
                         } : null
                     })
                     .ToList();
@@ -356,7 +348,8 @@ namespace WebAppDoCongNghe.Controllers
                         {
                             danhGia.TaiKhoan.Id,
                             danhGia.TaiKhoan.HoTen,
-                            danhGia.TaiKhoan.Email
+                            danhGia.TaiKhoan.Email,
+                            danhGia.TaiKhoan.HinhAnh
                         } : null
                     }
                 });

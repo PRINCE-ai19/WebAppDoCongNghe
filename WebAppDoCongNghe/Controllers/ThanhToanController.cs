@@ -71,19 +71,19 @@ namespace WebAppDoCongNghe.Controllers
         [HttpGet("ThanhToan/Xem/{taiKhoanId}")]
         public IActionResult XemSanPhamThanhToan(int taiKhoanId)
         {
-            // 🔹 Lấy tài khoản
+            //  Lấy tài khoản
             var taiKhoan = _context.TaiKhoans
                 .FirstOrDefault(t => t.Id == taiKhoanId);
 
             if (taiKhoan == null)
                 return NotFound(new { success = false, message = "Không tìm thấy tài khoản." });
 
-            // 🔹 Lấy giỏ hàng của tài khoản
+            //  Lấy giỏ hàng của tài khoản
             var gioHang = _context.GioHangs.FirstOrDefault(g => g.TaiKhoanId == taiKhoanId);
             if (gioHang == null)
                 return Ok(new { success = false, message = "Giỏ hàng trống." });
 
-            // 🔹 Lấy chi tiết giỏ hàng
+            //  Lấy chi tiết giỏ hàng
             var chiTietList = _context.ChiTietGioHangs
                 .Where(c => c.GioHangId == gioHang.Id)
                 .ToList();
@@ -91,19 +91,19 @@ namespace WebAppDoCongNghe.Controllers
             if (!chiTietList.Any())
                 return Ok(new { success = false, message = "Giỏ hàng trống." });
 
-            // 🔹 Lấy danh sách sản phẩm liên quan
+            //  Lấy danh sách sản phẩm liên quan
             var sanPhamIds = chiTietList.Select(c => c.SanPhamId).ToList();
             var sanPhamDict = _context.SanPhams
                 .Where(sp => sanPhamIds.Contains(sp.Id))
                 .ToDictionary(sp => sp.Id, sp => sp);
 
-            // 🔹 Lấy hình ảnh đầu tiên của mỗi sản phẩm
+            //  Lấy hình ảnh đầu tiên của mỗi sản phẩm
             var hinhAnhDict = _context.HinhAnhSanPhams
                 .Where(h => sanPhamIds.Contains(h.SanPhamId))
                 .GroupBy(h => h.SanPhamId)
                 .ToDictionary(g => g.Key, g => g.Select(x => x.HinhAnh).FirstOrDefault());
 
-            // 🔹 Gộp dữ liệu và tính giá giảm từ khuyến mãi
+            //  Gộp dữ liệu và tính giá giảm từ khuyến mãi
             var data = chiTietList.Select(c =>
             {
                 var sanPhamId = c.SanPhamId.GetValueOrDefault();
@@ -153,7 +153,7 @@ namespace WebAppDoCongNghe.Controllers
                 })
                 .ToList();
 
-            // 🔹 Trả về kết quả có thông tin user và voucher
+            //  Trả về kết quả có thông tin user và voucher
             return Ok(new
             {
                 success = true,
@@ -369,7 +369,7 @@ namespace WebAppDoCongNghe.Controllers
                 TaiKhoanId = model.TaiKhoanId,
                 NgayDat = DateTime.Now,
                 TongTien = tongTienSauGiam,
-                TrangThai = "Chờ xác nhận",
+                TrangThai = OrderStatus.ChoXuLy,
                 DiaChiGiao = model.DiaChiGiao ?? string.Empty,
                 GhiChu = model.GhiChu ?? string.Empty,
                 PhuongThucThanhToan = true,

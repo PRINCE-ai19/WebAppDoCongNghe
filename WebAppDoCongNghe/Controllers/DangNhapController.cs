@@ -100,29 +100,51 @@ namespace WebAppDoCongNghe.Controllers
 
         // send Otp
         [HttpPost("SendOtp")]
-        public async Task<IActionResult> SendOtp(string email)
+        public async Task<IActionResult> SendOtp([FromQuery] string email)
         {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return BadRequest(new ApiRespone
+                {
+                    Success = false,
+                    Message = "Email không được để trống!"
+                });
+            }
+
             var user = _context.TaiKhoans.FirstOrDefault(u => u.Email == email);
             if (user == null)
+            {
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
                     Message = "Email không tồn tại!"
                 });
+            }
 
-
-            var otp = new Random().Next(100000, 999999).ToString();
-            await _publicService.SendEmailAsync(email, "OTP Reset Password", $"Mã OTP của bạn là: {otp} . Mã có hiệu lực trong 5 phút.");
-
-            user.Otp = otp;
-            user.OtpExpire = DateTime.UtcNow.AddMinutes(5);
-            _context.TaiKhoans.Update(user);
-            await _context.SaveChangesAsync();
-            return Ok(new ApiRespone
+            try
             {
-                Success = true,
-                Message = "Đã gửi OTP đến email của bạn!"
-            });
+                var otp = new Random().Next(100000, 999999).ToString();
+                await _publicService.SendEmailAsync(email, "OTP Reset Password", $"Mã OTP của bạn là: {otp}. Mã có hiệu lực trong 5 phút.");
+
+                user.Otp = otp;
+                user.OtpExpire = DateTime.UtcNow.AddMinutes(5);
+                _context.TaiKhoans.Update(user);
+                await _context.SaveChangesAsync();
+
+                return Ok(new ApiRespone
+                {
+                    Success = true,
+                    Message = "Đã gửi OTP đến email của bạn!"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiRespone
+                {
+                    Success = false,
+                    Message = $"Không thể gửi email OTP: {ex.Message}"
+                });
+            }
         }
 
 
