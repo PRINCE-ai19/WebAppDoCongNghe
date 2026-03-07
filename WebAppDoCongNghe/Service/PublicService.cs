@@ -40,7 +40,7 @@ namespace WebAppDoCongNghe.Service
             message.To.Add(new MailAddress(toEmail));
             message.Subject = subject;
             message.Body = body;
-            message.IsBodyHtml = false;
+            message.IsBodyHtml = false; // nếu muốn để html thì true
 
             using (var client = new SmtpClient(_settings.Host, _settings.Port))
             {

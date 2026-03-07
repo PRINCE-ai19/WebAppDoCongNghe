@@ -7,7 +7,8 @@ namespace BanDoCongNghe.Services.VnpayServices
 {
     public interface IVnpay
     {
-        void Initialize(string tmpCode,
+        void Initialize(
+            string tmpCode,
             string hashSecret,
             string callBackUrl,
             string baseUrl,
