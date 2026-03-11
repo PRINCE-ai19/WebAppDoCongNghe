@@ -1,9 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 using WebAppDoCongNghe.Models.model;
 
 namespace WebAppDoCongNghe.Controllers
@@ -12,9 +12,9 @@ namespace WebAppDoCongNghe.Controllers
     [ApiController]
     public class PhieuGiamGiaController : ControllerBase
     {
-        private readonly WebAppDoCongNgheContext _context;
+        private readonly AppDbContext _context;
 
-        public PhieuGiamGiaController(WebAppDoCongNgheContext context)
+        public PhieuGiamGiaController(AppDbContext context)
         {
             _context = context;
         }
@@ -34,7 +34,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new
             {
                 success = true,
-                message = "Lấy danh sách danh mục thành công",
+                message = "L?y danh s�ch danh m?c th�nh c�ng",
                 data = new
                 {
                     items = items,
@@ -53,7 +53,7 @@ namespace WebAppDoCongNghe.Controllers
                 new ApiRespone
                 {
                     Success = true,
-                    Message = "lấy danh sách phiếu giảm giá thành công",
+                    Message = "l?y danh s�ch phi?u gi?m gi� th�nh c�ng",
                     Data = data
                 }
                 );
@@ -68,7 +68,7 @@ namespace WebAppDoCongNghe.Controllers
                     new ApiRespone
                     {
                         Success = false,
-                        Message = " lỗi validate dữ liệu"
+                        Message = " l?i validate d? li?u"
                     });
             }
 
@@ -91,7 +91,7 @@ namespace WebAppDoCongNghe.Controllers
                 new
                 {
                     Success = true,
-                    message = "tạo thành công phiếu giảm giá",
+                    message = "t?o th�nh c�ng phi?u gi?m gi�",
                     data = PhieuGiam
 
                 });
@@ -106,7 +106,7 @@ namespace WebAppDoCongNghe.Controllers
             if (entity == null) {
                 return BadRequest(new ApiRespone { 
                  Success = false,
-                 Message ="lỗi không tìm thấy phiếu giảm giá"
+                 Message ="l?i kh�ng t�m th?y phi?u gi?m gi�"
                 });
             }
 
@@ -121,7 +121,7 @@ namespace WebAppDoCongNghe.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Ok(new { Success = true, message = "Cập nhật thành công!" });
+            return Ok(new { Success = true, message = "C?p nh?t th�nh c�ng!" });
         }
 
         [HttpDelete("Delete/{id}")]
@@ -134,7 +134,7 @@ namespace WebAppDoCongNghe.Controllers
             _context.PhieuGiamGia.Remove(entity);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Xóa thành công!" });
+            return Ok(new { message = "X�a th�nh c�ng!" });
         }
 
         [HttpPost("Claim")]
@@ -147,17 +147,17 @@ namespace WebAppDoCongNghe.Controllers
             if (voucher == null)
                 return BadRequest(new {
                  sucsess = false,
-                 message ="Phiếu giảm giá không tồn tại"
+                 message ="Phi?u gi?m gi� kh�ng t?n t?i"
                 });
 
             if (DateTime.Now < voucher.NgayBatDau || DateTime.Now > voucher.NgayKetThuc)
                 return BadRequest (new { 
                 sussess = false,
-                message ="phiếu này đã hết hạn sử dụng"
+                message ="phi?u n�y d� h?t h?n s? d?ng"
                 });
 
             if (voucher.SoLuong <= 0)
-                return BadRequest(new { sussess = false , message ="phiếu đã hết số lượng" });
+                return BadRequest(new { sussess = false , message ="phi?u d� h?t s? lu?ng" });
 
             var userVoucher = await _context.TaiKhoanPhieuGiamGia
                                             .FirstOrDefaultAsync(x => x.TaiKhoanId == resquest.TaiKhoanID  
@@ -167,7 +167,7 @@ namespace WebAppDoCongNghe.Controllers
             {
                 return BadRequest(new {
                  success = false,
-                 message ="Bạn đã nhận phiếu này rồi"
+                 message ="B?n d� nh?n phi?u n�y r?i"
                 });
             }
 
@@ -189,7 +189,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new
             {
                 success = true,
-                message = "bạn nhận phiếu giảm giá thành công"
+                message = "b?n nh?n phi?u gi?m gi� th�nh c�ng"
             });
 
         }

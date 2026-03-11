@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 using WebAppDoCongNghe.Models.model;
 
 namespace WebAppDoCongNghe.Controllers
@@ -11,9 +11,9 @@ namespace WebAppDoCongNghe.Controllers
     [ApiController]
     public class KhuyenMaiController : ControllerBase
     {
-        private readonly WebAppDoCongNgheContext _context;
+        private readonly AppDbContext _context;
 
-        public KhuyenMaiController(WebAppDoCongNgheContext context)
+        public KhuyenMaiController(AppDbContext context)
         {
             _context = context;
         }

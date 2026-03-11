@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 
 namespace WebAppDoCongNghe.Controllers
 {
@@ -9,9 +9,9 @@ namespace WebAppDoCongNghe.Controllers
     [ApiController]
     public class ThongKeController : ControllerBase
     {
-        private readonly WebAppDoCongNgheContext _context;
+        private readonly AppDbContext _context;
 
-        public ThongKeController(WebAppDoCongNgheContext context)
+        public ThongKeController(AppDbContext context)
         {
             _context = context;
         }

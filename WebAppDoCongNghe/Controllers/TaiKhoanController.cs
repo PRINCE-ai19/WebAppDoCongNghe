@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 using WebAppDoCongNghe.Models.model;
 using WebAppDoCongNghe.Service;
 
@@ -13,10 +13,10 @@ namespace WebAppDoCongNghe.Controllers
     [ApiController]
     public class TaiKhoanController : ControllerBase
     {
-        private readonly WebAppDoCongNgheContext _context;
+        private readonly AppDbContext _context;
         private readonly ICloudinaryService _cloudinaryService;
 
-        public TaiKhoanController(WebAppDoCongNgheContext context, ICloudinaryService cloudinaryService)
+        public TaiKhoanController(AppDbContext context, ICloudinaryService cloudinaryService)
         {
             _context = context;
             _cloudinaryService = cloudinaryService;
@@ -61,7 +61,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new
             {
                 success = true,
-                message = "Lấy danh sách tài khoản thành công",
+                message = "L?y danh s�ch t�i kho?n th�nh c�ng",
                 data = new
                 {
                     items,
@@ -101,7 +101,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Danh sách tài khoản",
+                Message = "Danh s�ch t�i kho?n",
                 Data = list
             });
         }
@@ -138,14 +138,14 @@ namespace WebAppDoCongNghe.Controllers
                 return NotFound(new ApiRespone
                 {
                     Success = false,
-                    Message = "Không tìm thấy tài khoản"
+                    Message = "Kh�ng t�m th?y t�i kho?n"
                 });
             }
 
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Lấy tài khoản thành công",
+                Message = "L?y t�i kho?n th�nh c�ng",
                 Data = tk
             });
         }
@@ -161,7 +161,7 @@ namespace WebAppDoCongNghe.Controllers
                 return NotFound(new ApiRespone
                 {
                     Success = false,
-                    Message = "Không tìm thấy tài khoản"
+                    Message = "Kh�ng t�m th?y t�i kho?n"
                 });
             }
 
@@ -176,7 +176,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Cập nhật tài khoản thành công",
+                Message = "C?p nh?t t�i kho?n th�nh c�ng",
                 Data = tk
             });
         }
@@ -192,7 +192,7 @@ namespace WebAppDoCongNghe.Controllers
                 return NotFound(new ApiRespone
                 {
                     Success = false,
-                    Message = "Không tìm thấy tài khoản"
+                    Message = "Kh�ng t�m th?y t�i kho?n"
                 });
             }
 
@@ -202,7 +202,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Xóa tài khoản thành công"
+                Message = "X�a t�i kho?n th�nh c�ng"
             });
         }
 
@@ -223,7 +223,7 @@ namespace WebAppDoCongNghe.Controllers
                 return Ok(new ApiRespone
                 {
                     Success = true,
-                    Message = "Lấy danh sách loại tài khoản thành công",
+                    Message = "L?y danh s�ch lo?i t�i kho?n th�nh c�ng",
                     Data = list
                 });
             }
@@ -232,7 +232,7 @@ namespace WebAppDoCongNghe.Controllers
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
-                    Message = $"Lỗi khi lấy danh sách loại tài khoản: {ex.Message}",
+                    Message = $"L?i khi l?y danh s�ch lo?i t�i kho?n: {ex.Message}",
                     Data = null
                 });
             }
@@ -243,7 +243,7 @@ namespace WebAppDoCongNghe.Controllers
         {
             try
             {
-                // Kiểm tra ModelState validation
+                // Ki?m tra ModelState validation
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState.Values
@@ -266,17 +266,17 @@ namespace WebAppDoCongNghe.Controllers
                     return NotFound(new ApiRespone
                     {
                         Success = false,
-                        Message = "Không tìm thấy tài khoản"
+                        Message = "Kh�ng t�m th?y t�i kho?n"
                     });
                 }
 
-                // Cập nhật thông tin cơ bản
+                // C?p nh?t th�ng tin co b?n
                 tk.HoTen = model.HoTen;
                 tk.Email = model.Email;
                 tk.SoDienThoai = model.SoDienThoai;
                 tk.DiaChi = model.DiaChi;
 
-                // Upload ảnh nếu có
+                // Upload ?nh n?u c�
                 if (model.HinhAnh != null && model.HinhAnh.Length > 0)
                 {
                     try
@@ -292,7 +292,7 @@ namespace WebAppDoCongNghe.Controllers
                         return BadRequest(new ApiRespone
                         {
                             Success = false,
-                            Message = $"Lỗi khi upload ảnh: {imgEx.Message}",
+                            Message = $"L?i khi upload ?nh: {imgEx.Message}",
                             Data = null
                         });
                     }
@@ -300,7 +300,7 @@ namespace WebAppDoCongNghe.Controllers
 
                 await _context.SaveChangesAsync();
 
-                // Trả về thông tin đã cập nhật
+                // Tr? v? th�ng tin d� c?p nh?t
                 var updatedTk = _context.TaiKhoans
                     .Include(x => x.IdLoaiTaiKhoanNavigation)
                     .Where(x => x.Id == id)
@@ -327,7 +327,7 @@ namespace WebAppDoCongNghe.Controllers
                 return Ok(new ApiRespone
                 {
                     Success = true,
-                    Message = "Cập nhật thông tin thành công",
+                    Message = "C?p nh?t th�ng tin th�nh c�ng",
                     Data = updatedTk
                 });
             }
@@ -336,7 +336,7 @@ namespace WebAppDoCongNghe.Controllers
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
-                    Message = $"Lỗi khi cập nhật thông tin: {ex.Message}",
+                    Message = $"L?i khi c?p nh?t th�ng tin: {ex.Message}",
                     Data = null
                 });
             }

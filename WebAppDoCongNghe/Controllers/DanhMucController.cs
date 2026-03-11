@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 using WebAppDoCongNghe.Models.model;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
@@ -12,8 +12,8 @@ namespace WebAppDoCongNghe.Controllers
     [ApiController]
     public class DanhMucController : ControllerBase
     {
-        private readonly WebAppDoCongNgheContext _context;
-        public DanhMucController( WebAppDoCongNgheContext context)
+        private readonly AppDbContext _context;
+        public DanhMucController( AppDbContext context)
         {
             _context = context;
         }
@@ -33,7 +33,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new
             {
                 success = true,
-                message = "Lấy danh sách danh mục thành công",
+                message = "L?y danh s�ch danh m?c th�nh c�ng",
                 data = new
                 {
                     items = items,
@@ -51,13 +51,13 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Các danh mục sản phẩm",
+                Message = "C�c danh m?c s?n ph?m",
                 Data = item
             });
 
         }
 
-        // lấy theo id
+        // l?y theo id
         [HttpGet("{id}")]
         public IActionResult GetById(int id)
         {
@@ -67,13 +67,13 @@ namespace WebAppDoCongNghe.Controllers
                 return NotFound(new ApiRespone
                 {
                     Success = false,
-                    Message = "Không tìm thấy danh mục sản phẩm"
+                    Message = "Kh�ng t�m th?y danh m?c s?n ph?m"
                 });
             }
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "lấy danh mục các sản phẩm thành công",
+                Message = "l?y danh m?c c�c s?n ph?m th�nh c�ng",
                 Data = danhMuc
             });
         }
@@ -85,7 +85,7 @@ namespace WebAppDoCongNghe.Controllers
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
-                    Message = "dữ liệu không hợp lệ"
+                    Message = "d? li?u kh�ng h?p l?"
                 });
 
             var danhMuc = new DanhMuc
@@ -101,7 +101,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Thêm danh mục thành công",
+                Message = "Th�m danh m?c th�nh c�ng",
                 Data = model
             });
         }
@@ -111,7 +111,7 @@ namespace WebAppDoCongNghe.Controllers
         {
             var danhMuc = _context.DanhMucs.Find(id);
             if (danhMuc == null)
-                return NotFound(new ApiRespone { Success = false, Message = "Không tìm thấy danh mục" });
+                return NotFound(new ApiRespone { Success = false, Message = "Kh�ng t�m th?y danh m?c" });
 
             danhMuc.TenDanhMuc = model.TenDanhMuc;
             danhMuc.MoTa = model.MoTa;
@@ -119,7 +119,7 @@ namespace WebAppDoCongNghe.Controllers
 
             _context.SaveChanges();
 
-            return Ok(new ApiRespone { Success = true, Message = "Cập nhật danh mục thành công", Data = danhMuc });
+            return Ok(new ApiRespone { Success = true, Message = "C?p nh?t danh m?c th�nh c�ng", Data = danhMuc });
         }
 
 
@@ -128,12 +128,12 @@ namespace WebAppDoCongNghe.Controllers
         {
             var danhMuc = _context.DanhMucs.Find(id);
             if (danhMuc == null)
-                return NotFound(new ApiRespone { Success = false, Message = "Không tìm thấy danh mục" });
+                return NotFound(new ApiRespone { Success = false, Message = "Kh�ng t�m th?y danh m?c" });
 
             _context.DanhMucs.Remove(danhMuc);
             _context.SaveChanges();
 
-            return Ok(new ApiRespone { Success = true, Message = "Xóa danh mục thành công" });
+            return Ok(new ApiRespone { Success = true, Message = "X�a danh m?c th�nh c�ng" });
         }
 
 
@@ -143,13 +143,13 @@ namespace WebAppDoCongNghe.Controllers
             var danhMuc = _context.DanhMucs.Include(dm => dm.SanPhams).FirstOrDefault(dm => dm.Id == id);
             if (danhMuc == null)
             {
-                return NotFound(new { Success = false, Message = "Không tìm thấy danh mục" });
+                return NotFound(new { Success = false, Message = "Kh�ng t�m th?y danh m?c" });
             }
 
             return Ok(new
             {
                 Success = true,
-                Message = $"Danh sách sản phẩm thuộc danh mục {danhMuc.TenDanhMuc}",
+                Message = $"Danh s�ch s?n ph?m thu?c danh m?c {danhMuc.TenDanhMuc}",
                 Data = danhMuc.SanPhams
             });
         }

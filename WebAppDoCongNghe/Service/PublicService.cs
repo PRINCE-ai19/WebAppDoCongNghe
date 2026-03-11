@@ -1,11 +1,11 @@
-Ôªøusing Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Mail;
 using System.Runtime;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 
 namespace WebAppDoCongNghe.Service
 {
@@ -13,14 +13,14 @@ namespace WebAppDoCongNghe.Service
     {
         private readonly EmailSettings _settings;
 
-        private readonly WebAppDoCongNgheContext _context;
-        public PublicService(IOptions<EmailSettings> options , WebAppDoCongNgheContext context)
+        private readonly AppDbContext _context;
+        public PublicService(IOptions<EmailSettings> options , AppDbContext context)
         {
             _settings = options.Value;
             _context = context;
         }
 
-        // m√£ h√≥a password
+        // m„ hÛa password
         private readonly PasswordHasher<string> passwordHasher = new PasswordHasher<string>();
         public string HashPassword(string password)
         {
@@ -32,7 +32,7 @@ namespace WebAppDoCongNghe.Service
         }
 
 
-        // g·ª≠i mail m√£ Otp
+        // g?i mail m„ Otp
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
             var message = new MailMessage();
@@ -40,7 +40,7 @@ namespace WebAppDoCongNghe.Service
             message.To.Add(new MailAddress(toEmail));
             message.Subject = subject;
             message.Body = body;
-            message.IsBodyHtml = false; // n·∫øu mu·ªën ƒë·ªÉ html th√¨ true
+            message.IsBodyHtml = false; // n?u mu?n d? html thÏ true
 
             using (var client = new SmtpClient(_settings.Host, _settings.Port))
             {
@@ -74,7 +74,7 @@ namespace WebAppDoCongNghe.Service
                 return new
                 {
                     success = false,
-                    message = "Kh√¥ng c√≥ th√¥ng b√°o n√†o."
+                    message = "KhÙng cÛ thÙng b·o n‡o."
                 };
             }
 
@@ -86,7 +86,7 @@ namespace WebAppDoCongNghe.Service
         }
 
 
-        // ‚úÖ Xem chi ti·∫øt th√¥ng b√°o
+        // ? Xem chi ti?t thÙng b·o
         public async Task<dynamic> GetDetail(int id)
         {
             var thongBao = await _context.ThongBaos.FindAsync(id);
@@ -96,11 +96,11 @@ namespace WebAppDoCongNghe.Service
                 return new
                 {
                     success = false,
-                    message = "Kh√¥ng t√¨m th·∫•y th√¥ng b√°o."
+                    message = "KhÙng tÏm th?y thÙng b·o."
                 };
             }
 
-            // ƒê√°nh d·∫•u ƒë√£ xem n·∫øu ch∆∞a xem
+            // –·nh d?u d„ xem n?u chua xem
             if (thongBao.DaXem == false)
             {
                 thongBao.DaXem = true;
@@ -124,7 +124,7 @@ namespace WebAppDoCongNghe.Service
         }
 
 
-        // ‚úÖ Th√™m th√¥ng b√°o m·ªõi
+        // ? ThÍm thÙng b·o m?i
         public async Task<dynamic> AddThongBao(int taiKhoanId, string tieuDe, string noiDung)
         {
             var thongBao = new ThongBao
@@ -142,13 +142,13 @@ namespace WebAppDoCongNghe.Service
             return new
             {
                 success = true,
-                message = "ƒê√£ th√™m th√¥ng b√°o m·ªõi th√†nh c√¥ng.",
+                message = "–„ thÍm thÙng b·o m?i th‡nh cÙng.",
                 data = thongBao
             };
         }
 
 
-        // ‚úÖ X√≥a th√¥ng b√°o theo ID
+        // ? XÛa thÙng b·o theo ID
         public async Task<dynamic> DeleteThongBao(int id)
         {
             var thongBao = await _context.ThongBaos.FindAsync(id);
@@ -158,7 +158,7 @@ namespace WebAppDoCongNghe.Service
                 return new
                 {
                     success = false,
-                    message = "Kh√¥ng t√¨m th·∫•y th√¥ng b√°o c·∫ßn x√≥a."
+                    message = "KhÙng tÏm th?y thÙng b·o c?n xÛa."
                 };
             }
 
@@ -168,7 +168,7 @@ namespace WebAppDoCongNghe.Service
             return new
             {
                 success = true,
-                message = "ƒê√£ x√≥a th√¥ng b√°o th√†nh c√¥ng."
+                message = "–„ xÛa thÙng b·o th‡nh cÙng."
             };
         }
 

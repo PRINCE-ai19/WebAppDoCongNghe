@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 using WebAppDoCongNghe.Models.model;
 using WebAppDoCongNghe.Service;
 
@@ -13,21 +13,21 @@ namespace WebAppDoCongNghe.Controllers
     public class SanPhamController : ControllerBase
     {
 
-        private readonly WebAppDoCongNgheContext _context;
+        private readonly AppDbContext _context;
 
         private readonly ICloudinaryService _cloudinaryService;
-        public SanPhamController(WebAppDoCongNgheContext context, ICloudinaryService cloudinaryService)
+        public SanPhamController(AppDbContext context, ICloudinaryService cloudinaryService)
         {
             _context = context;
             _cloudinaryService = cloudinaryService;
         }
 
-        // Helper method để tính giá giảm từ khuyến mãi đang active
+        // Helper method d? t�nh gi� gi?m t? khuy?n m�i dang active
         private decimal? TinhGiaGiamTuKhuyenMai(decimal giaGoc, int sanPhamId)
         {
             var today = DateOnly.FromDateTime(DateTime.Now);
             
-            // Lấy khuyến mãi đang active cho sản phẩm này
+            // L?y khuy?n m�i dang active cho s?n ph?m n�y
             var khuyenMaiActive = _context.SanPhamKhuyenMais
                 .Include(spkm => spkm.KhuyenMai)
                 .Where(spkm => spkm.SanPhamId == sanPhamId 
@@ -41,7 +41,7 @@ namespace WebAppDoCongNghe.Controllers
 
             if (khuyenMaiActive > 0)
             {
-                // Tính giá giảm: giá gốc * (1 - phần trăm giảm / 100)
+                // T�nh gi� gi?m: gi� g?c * (1 - ph?n tram gi?m / 100)
                 return giaGoc * (1 - khuyenMaiActive / 100);
             }
 
@@ -61,7 +61,7 @@ namespace WebAppDoCongNghe.Controllers
                     .ThenInclude(spkm => spkm.KhuyenMai)
                 .ToList()
                 .Select(p => {
-                    // Tính giá giảm từ khuyến mãi đang active
+                    // T�nh gi� gi?m t? khuy?n m�i dang active
                     var khuyenMaiActive = p.SanPhamKhuyenMais
                         .Where(spkm => spkm.KhuyenMai != null
                             && spkm.KhuyenMai.NgayBatDau <= today 
@@ -75,7 +75,7 @@ namespace WebAppDoCongNghe.Controllers
                         ? p.Gia * (1 - khuyenMaiActive / 100) 
                         : (decimal?)null;
 
-                    // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ
+                    // Uu ti�n gi� gi?m t? khuy?n m�i, n?u kh�ng c� th� d�ng gi� gi?m cu
                     var giaGiamCuoiCung = giaGiamTuKhuyenMai ?? p.GiaGiam;
 
                     return new
@@ -111,7 +111,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new
             {
                 success = true,
-                message = "Lấy danh sách sản phẩm thành công",
+                message = "L?y danh s�ch s?n ph?m th�nh c�ng",
                 data = new
                 {
                     items = items,
@@ -133,7 +133,7 @@ namespace WebAppDoCongNghe.Controllers
                     .ThenInclude(spkm => spkm.KhuyenMai)
                 .ToList()
                 .Select(p => {
-                    // Tính giá giảm từ khuyến mãi đang active
+                    // T�nh gi� gi?m t? khuy?n m�i dang active
                     var khuyenMaiActive = p.SanPhamKhuyenMais
                         .Where(spkm => spkm.KhuyenMai != null
                             && spkm.KhuyenMai.NgayBatDau <= today 
@@ -147,7 +147,7 @@ namespace WebAppDoCongNghe.Controllers
                         ? p.Gia * (1 - khuyenMaiActive / 100) 
                         : (decimal?)null;
 
-                    // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ
+                    // Uu ti�n gi� gi?m t? khuy?n m�i, n?u kh�ng c� th� d�ng gi� gi?m cu
                     var giaGiamCuoiCung = giaGiamTuKhuyenMai ?? p.GiaGiam;
 
                     return new
@@ -170,7 +170,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Danh sách sản phẩm",
+                Message = "Danh s�ch s?n ph?m",
                 Data = products
             });
         }
@@ -193,11 +193,11 @@ namespace WebAppDoCongNghe.Controllers
                 return NotFound(new ApiRespone
                 {
                     Success = false,
-                    Message = "Không tìm thấy sản phẩm"
+                    Message = "Kh�ng t�m th?y s?n ph?m"
                 });
             }
 
-            // Tính giá giảm từ khuyến mãi đang active
+            // T�nh gi� gi?m t? khuy?n m�i dang active
             var khuyenMaiActive = product.SanPhamKhuyenMais
                 .Where(spkm => spkm.KhuyenMai != null
                     && spkm.KhuyenMai.NgayBatDau <= today 
@@ -211,11 +211,11 @@ namespace WebAppDoCongNghe.Controllers
                 ? product.Gia * (1 - khuyenMaiActive / 100) 
                 : (decimal?)null;
 
-            // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ
+            // Uu ti�n gi� gi?m t? khuy?n m�i, n?u kh�ng c� th� d�ng gi� gi?m cu
             var giaGiamCuoiCung = giaGiamTuKhuyenMai ?? product.GiaGiam;
 
             var imageList = product.HinhAnhSanPhams?
-                                   .Select(img => img.HinhAnh) // lấy URL ảnh Cloudinary
+                                   .Select(img => img.HinhAnh) // l?y URL ?nh Cloudinary
                                   .ToList();
 
             var cauHinhList = product.CauHinhSanPhams?
@@ -247,7 +247,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Lấy thông tin sản phẩm thành công",
+                Message = "L?y th�ng tin s?n ph?m th�nh c�ng",
                 Data = result
             });
         }
@@ -272,13 +272,13 @@ namespace WebAppDoCongNghe.Controllers
                 return NotFound(new ApiRespone
                 {
                     Success = false,
-                    Message = "Không có sản phẩm nào thuộc danh mục này"
+                    Message = "Kh�ng c� s?n ph?m n�o thu?c danh m?c n�y"
                 });
             }
 
 
             var result = products.Select(p => {
-                // Tính giá giảm từ khuyến mãi đang active
+                // T�nh gi� gi?m t? khuy?n m�i dang active
                 var khuyenMaiActive = p.SanPhamKhuyenMais
                     .Where(spkm => spkm.KhuyenMai != null
                         && spkm.KhuyenMai.NgayBatDau <= today 
@@ -292,7 +292,7 @@ namespace WebAppDoCongNghe.Controllers
                     ? p.Gia * (1 - khuyenMaiActive / 100) 
                     : (decimal?)null;
 
-                // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ
+                // Uu ti�n gi� gi?m t? khuy?n m�i, n?u kh�ng c� th� d�ng gi� gi?m cu
                 var giaGiamCuoiCung = giaGiamTuKhuyenMai ?? p.GiaGiam;
 
                 return new
@@ -307,7 +307,7 @@ namespace WebAppDoCongNghe.Controllers
                     ThuongHieu = p.ThuongHieu,
                     DanhMuc = p.DanhMuc?.TenDanhMuc,
 
-                    // Ảnh đại diện: lấy URL đầu tiên trong danh sách hình của sản phẩm
+                    // ?nh d?i di?n: l?y URL d?u ti�n trong danh s�ch h�nh c?a s?n ph?m
                     AnhDaiDien = p.HinhAnhSanPhams != null && p.HinhAnhSanPhams.Any()
                    ? p.HinhAnhSanPhams.First().HinhAnh
                    : null
@@ -318,7 +318,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Lấy danh sách sản phẩm theo danh mục thành công",
+                Message = "L?y danh s�ch s?n ph?m theo danh m?c th�nh c�ng",
                 Data = result
             });
         }
@@ -332,7 +332,7 @@ namespace WebAppDoCongNghe.Controllers
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
-                    Message = "Dữ liệu không hợp lệ"
+                    Message = "D? li?u kh�ng h?p l?"
                 });
             }
 
@@ -353,7 +353,7 @@ namespace WebAppDoCongNghe.Controllers
                 _context.SanPhams.Add(sp);
                 await _context.SaveChangesAsync();
 
-                // Upload ảnh nếu có
+                // Upload ?nh n?u c�
                 if (model.Hinhanh != null && model.Hinhanh.Any())
                 {
                     foreach (var file in model.Hinhanh)
@@ -377,7 +377,7 @@ namespace WebAppDoCongNghe.Controllers
                 return Ok(new
                 {
                     Success = true,
-                    Message = "Thêm sản phẩm thành công"
+                    Message = "Th�m s?n ph?m th�nh c�ng"
                 });
             }
             catch (Exception ex)
@@ -396,7 +396,7 @@ namespace WebAppDoCongNghe.Controllers
                 .FirstOrDefaultAsync(x => x.Id == id);
 
             if (product == null)
-                return NotFound(new ApiRespone { Success = false, Message = "Không tìm thấy sản phẩm" });
+                return NotFound(new ApiRespone { Success = false, Message = "Kh�ng t�m th?y s?n ph?m" });
 
             using var trans = await _context.Database.BeginTransactionAsync();
             try
@@ -412,7 +412,7 @@ namespace WebAppDoCongNghe.Controllers
                 _context.SanPhams.Update(product);
                 await _context.SaveChangesAsync();
 
-                // THÊM ẢNH MỚI
+                // TH�M ?NH M?I
                 if (model.Hinhanh != null && model.Hinhanh.Any())
                 {
                     foreach (var file in model.Hinhanh)
@@ -436,7 +436,7 @@ namespace WebAppDoCongNghe.Controllers
                 return Ok(new ApiRespone
                 {
                     Success = true,
-                    Message = "Cập nhật sản phẩm thành công"
+                    Message = "C?p nh?t s?n ph?m th�nh c�ng"
                 });
             }
             catch (Exception ex)
@@ -457,7 +457,7 @@ namespace WebAppDoCongNghe.Controllers
                 return NotFound(new
                 {
                     Success = false,
-                    Message = "Không tìm thấy sản phẩm"
+                    Message = "Kh�ng t�m th?y s?n ph?m"
                 });
             }
 
@@ -467,7 +467,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new
             {
                 Success = true,
-                Message = "Xóa sản phẩm thành công"
+                Message = "X�a s?n ph?m th�nh c�ng"
             });
         }
 
@@ -481,7 +481,7 @@ namespace WebAppDoCongNghe.Controllers
                 return NotFound(new ApiRespone
                 {
                     Success = false,
-                    Message = "Không tìm thấy ảnh"
+                    Message = "Kh�ng t�m th?y ?nh"
                 });
             }
 
@@ -491,7 +491,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Xoá ảnh thành công"
+                Message = "Xo� ?nh th�nh c�ng"
             });
         }
 
@@ -504,7 +504,7 @@ namespace WebAppDoCongNghe.Controllers
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
-                    Message = "Vui lòng nhập từ khóa tìm kiếm."
+                    Message = "Vui l�ng nh?p t? kh�a t�m ki?m."
                 });
             }
 
@@ -521,7 +521,7 @@ namespace WebAppDoCongNghe.Controllers
                     EF.Functions.Like(p.MoTa, $"%{keyword}%"))
                 .ToList()
                 .Select(p => {
-                    // Tính giá giảm từ khuyến mãi đang active
+                    // T�nh gi� gi?m t? khuy?n m�i dang active
                     var khuyenMaiActive = p.SanPhamKhuyenMais
                         .Where(spkm => spkm.KhuyenMai != null
                             && spkm.KhuyenMai.NgayBatDau <= today 
@@ -535,7 +535,7 @@ namespace WebAppDoCongNghe.Controllers
                         ? p.Gia * (1 - khuyenMaiActive / 100) 
                         : (decimal?)null;
 
-                    // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ
+                    // Uu ti�n gi� gi?m t? khuy?n m�i, n?u kh�ng c� th� d�ng gi� gi?m cu
                     var giaGiamCuoiCung = giaGiamTuKhuyenMai ?? p.GiaGiam;
 
                     return new
@@ -559,14 +559,14 @@ namespace WebAppDoCongNghe.Controllers
                 return NotFound(new ApiRespone
                 {
                     Success = false,
-                    Message = "Không tìm thấy sản phẩm nào phù hợp với từ khóa tìm kiếm."
+                    Message = "Kh�ng t�m th?y s?n ph?m n�o ph� h?p v?i t? kh�a t�m ki?m."
                 });
             }
 
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = $"Kết quả tìm kiếm cho '{keyword}'",
+                Message = $"K?t qu? t�m ki?m cho '{keyword}'",
                 Data = products
             });
         }

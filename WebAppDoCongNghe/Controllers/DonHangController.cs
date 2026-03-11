@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 using WebAppDoCongNghe.Models.model;
 
 namespace WebAppDoCongNghe.Controllers
@@ -11,9 +11,9 @@ namespace WebAppDoCongNghe.Controllers
     [ApiController]
     public class DonHangController : ControllerBase
     {
-        private readonly WebAppDoCongNgheContext _context;
+        private readonly AppDbContext _context;
 
-        public DonHangController(WebAppDoCongNgheContext context)
+        public DonHangController(AppDbContext context)
         {
             _context = context;
         }

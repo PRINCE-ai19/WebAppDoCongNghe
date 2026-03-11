@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 using WebAppDoCongNghe.Models.model;
 
 namespace WebAppDoCongNghe.Controllers
@@ -12,9 +12,9 @@ namespace WebAppDoCongNghe.Controllers
     [ApiController]
     public class DanhGiaController : ControllerBase
     {
-        private readonly WebAppDoCongNgheContext _context;
+        private readonly AppDbContext _context;
 
-        public DanhGiaController(WebAppDoCongNgheContext context)
+        public DanhGiaController(AppDbContext context)
         {
             _context = context;
         }

@@ -1,10 +1,10 @@
-﻿
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 using WebAppDoCongNghe.Models.model;
 using WebAppDoCongNghe.Service;
 
@@ -14,13 +14,13 @@ namespace WebAppDoCongNghe.Controllers
     [ApiController]
     public class DangNhapController : ControllerBase
     {
-        private readonly WebAppDoCongNgheContext _context;
+        private readonly AppDbContext _context;
 
         private readonly PublicService _publicService;
 
         private readonly JwtService _jwtService;
 
-        public DangNhapController(WebAppDoCongNgheContext context , PublicService publicService , JwtService jwtService)
+        public DangNhapController(AppDbContext context , PublicService publicService , JwtService jwtService)
         {
             _publicService = publicService;
             _context = context;
@@ -35,11 +35,11 @@ namespace WebAppDoCongNghe.Controllers
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
-                    Message = "dữ liệu nhập vào đã sai kiểm tra lại"
+                    Message = "d? li?u nh?p v�o d� sai ki?m tra l?i"
                 });
             }
 
-            //  Tìm tài khoản trong database
+            //  T�m t�i kho?n trong database
             var user = _context.TaiKhoans.FirstOrDefault(u => u.Email == request.TaiKhoan || u.SoDienThoai == request.TaiKhoan);
             if (user == null)
             {
@@ -50,7 +50,7 @@ namespace WebAppDoCongNghe.Controllers
                 });
             }
 
-            // so sánh mã hóa mật khẩu 
+            // so s�nh m� h�a m?t kh?u 
             var result = _publicService.PasswordVerification(user.MatKhau, request.MatKhau);
             if (result == PasswordVerificationResult.Failed)
             {
@@ -67,7 +67,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Đăng nhập thành công!",
+                Message = "�ang nh?p th�nh c�ng!",
                 Data = new
                 {
                     user.Id,
@@ -86,7 +86,7 @@ namespace WebAppDoCongNghe.Controllers
         [HttpPost("logout")]
         public IActionResult Logout()
         {
-            // Xóa cookie trên trình duyệt
+            // X�a cookie tr�n tr�nh duy?t
             Response.Cookies.Delete("AccessToken", new CookieOptions
             {
                 HttpOnly = true,
@@ -107,7 +107,7 @@ namespace WebAppDoCongNghe.Controllers
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
-                    Message = "Email không được để trống!"
+                    Message = "Email kh�ng du?c d? tr?ng!"
                 });
             }
 
@@ -117,14 +117,14 @@ namespace WebAppDoCongNghe.Controllers
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
-                    Message = "Email không tồn tại!"
+                    Message = "Email kh�ng t?n t?i!"
                 });
             }
 
             try
             {
                 var otp = new Random().Next(100000, 999999).ToString();
-                await _publicService.SendEmailAsync(email, "OTP Reset Password", $"Mã OTP của bạn là: {otp}. Mã có hiệu lực trong 5 phút.");
+                await _publicService.SendEmailAsync(email, "OTP Reset Password", $"M� OTP c?a b?n l�: {otp}. M� c� hi?u l?c trong 5 ph�t.");
 
                 user.Otp = otp;
                 user.OtpExpire = DateTime.UtcNow.AddMinutes(5);
@@ -134,7 +134,7 @@ namespace WebAppDoCongNghe.Controllers
                 return Ok(new ApiRespone
                 {
                     Success = true,
-                    Message = "Đã gửi OTP đến email của bạn!"
+                    Message = "�� g?i OTP d?n email c?a b?n!"
                 });
             }
             catch (Exception ex)
@@ -142,13 +142,13 @@ namespace WebAppDoCongNghe.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiRespone
                 {
                     Success = false,
-                    Message = $"Không thể gửi email OTP: {ex.Message}"
+                    Message = $"Kh�ng th? g?i email OTP: {ex.Message}"
                 });
             }
         }
 
 
-        // đặt lại mật khẩu
+        // d?t l?i m?t kh?u
         [HttpPost("ResetPassword")]
         public async Task<IActionResult> ResetPassword([FromBody] DatlaiMatKhau request)
         {
@@ -157,7 +157,7 @@ namespace WebAppDoCongNghe.Controllers
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
-                    Message = "Email không tồn tại!"
+                    Message = "Email kh�ng t?n t?i!"
                 });
 
 
@@ -165,17 +165,17 @@ namespace WebAppDoCongNghe.Controllers
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
-                    Message = "OTP đã hết hạn!"
+                    Message = "OTP d� h?t h?n!"
                 });
 
             if (user.Otp != request.Otp)
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
-                    Message = "OTP không đúng!"
+                    Message = "OTP kh�ng d�ng!"
                 });
 
-            // Hash lại mật khẩu mới
+            // Hash l?i m?t kh?u m?i
             var hashedPassword = _publicService.HashPassword(request.NewPassword);
 
             user.MatKhau = hashedPassword;
@@ -188,7 +188,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Mật khẩu đã được đặt lại thành công!",
+                Message = "M?t kh?u d� du?c d?t l?i th�nh c�ng!",
 
             });
 
@@ -202,7 +202,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "các tài khoản",
+                Message = "c�c t�i kho?n",
                 Data = item
             });
 

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 using WebAppDoCongNghe.Models.model;
 using WebAppDoCongNghe.Service;
 
@@ -11,11 +11,11 @@ namespace WebAppDoCongNghe.Controllers
     [ApiController]
     public class LienHeController : ControllerBase
     {
-        private readonly WebAppDoCongNgheContext _context;
+        private readonly AppDbContext _context;
         private readonly PublicService _publicService;
         private readonly IConfiguration _configuration;
 
-        public LienHeController(WebAppDoCongNgheContext context, PublicService publicService, IConfiguration configuration)
+        public LienHeController(AppDbContext context, PublicService publicService, IConfiguration configuration)
         {
             _context = context;
             _publicService = publicService;

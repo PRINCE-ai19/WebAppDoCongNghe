@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 using WebAppDoCongNghe.Models.model;
 
 namespace WebAppDoCongNghe.Controllers
@@ -11,18 +11,18 @@ namespace WebAppDoCongNghe.Controllers
     [ApiController]
     public class GioHangController : ControllerBase
     {
-        private readonly WebAppDoCongNgheContext _context;
-        public GioHangController(  WebAppDoCongNgheContext context)
+        private readonly AppDbContext _context;
+        public GioHangController(  AppDbContext context)
         {
             _context = context;
         }
 
-        // Helper method để tính giá giảm từ khuyến mãi
+        // Helper method d? t�nh gi� gi?m t? khuy?n m�i
         private decimal TinhGiaGiamTuKhuyenMai(decimal giaGoc, int sanPhamId)
         {
             var today = DateOnly.FromDateTime(DateTime.Now);
             
-            // Lấy khuyến mãi đang active cho sản phẩm này
+            // L?y khuy?n m�i dang active cho s?n ph?m n�y
             var khuyenMaiActive = _context.SanPhamKhuyenMais
                 .Include(spkm => spkm.KhuyenMai)
                 .Where(spkm => spkm.SanPhamId == sanPhamId 
@@ -36,15 +36,15 @@ namespace WebAppDoCongNghe.Controllers
 
             if (khuyenMaiActive > 0)
             {
-                // Tính giá giảm: giá gốc * (1 - phần trăm giảm / 100)
+                // T�nh gi� gi?m: gi� g?c * (1 - ph?n tram gi?m / 100)
                 return giaGoc * (1 - khuyenMaiActive / 100);
             }
 
-            // Nếu không có khuyến mãi, trả về giá gốc
+            // N?u kh�ng c� khuy?n m�i, tr? v? gi� g?c
             return giaGoc;
         }
 
-        // lấy giỏ hàng 
+        // l?y gi? h�ng 
         [HttpGet("paging")]
         public IActionResult GetPagingGH(int page, int pageSize)
         {
@@ -75,7 +75,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new
             {
                 success = true,
-                message = "Lấy danh sách giỏ hàng thành công",
+                message = "L?y danh s�ch gi? h�ng th�nh c�ng",
                 data = new
                 {
                     items = items,
@@ -86,46 +86,46 @@ namespace WebAppDoCongNghe.Controllers
             });
         }
 
-        // xóa giỏ hàng admin 
+        // x�a gi? h�ng admin 
         [HttpDelete("DeleteGH/{id}")]
         public IActionResult DeleteGH(int id) 
         {
             var giohang = _context.GioHangs.Find(id);
             if (giohang == null) 
             {
-                return NotFound(new ApiRespone { Success = false, Message = "Không tìm thấy giỏ hàng" });
+                return NotFound(new ApiRespone { Success = false, Message = "Kh�ng t�m th?y gi? h�ng" });
             }
             _context.GioHangs.Remove(giohang);
             _context.SaveChanges();
 
 
-            return Ok(new ApiRespone { Success = true, Message = "Xóa giỏ hàng thành công" });
+            return Ok(new ApiRespone { Success = true, Message = "X�a gi? h�ng th�nh c�ng" });
         }
 
 
-        // . Thêm sản phẩm vào giỏ hàng
+        // . Th�m s?n ph?m v�o gi? h�ng
         [HttpPost("Them")]
         public IActionResult ThemVaoGioHang(GioHangBind gioHangs)
         {
             if (gioHangs == null || gioHangs.TaiKhoanId == null || gioHangs.sanPhamId == null)
             {
-                return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ." });
+                return BadRequest(new { success = false, message = "D? li?u kh�ng h?p l?." });
             }
 
-            // Tìm sản phẩm
+            // T�m s?n ph?m
             var sanPham = _context.SanPhams.FirstOrDefault(p => p.Id == gioHangs.sanPhamId);
             if (sanPham == null)
             {
-                return BadRequest(new { success = false, message = "Sản phẩm không tồn tại." });
+                return BadRequest(new { success = false, message = "S?n ph?m kh�ng t?n t?i." });
             }
 
-            // Kiểm tra còn hàng không
+            // Ki?m tra c�n h�ng kh�ng
             if (sanPham.SoLuongTon == null || sanPham.SoLuongTon <= 0)
             {
-                return BadRequest(new { success = false, message = "Sản phẩm đã hết hàng." });
+                return BadRequest(new { success = false, message = "S?n ph?m d� h?t h�ng." });
             }
 
-            // Tìm giỏ hàng của tài khoản
+            // T�m gi? h�ng c?a t�i kho?n
             var gioHang = _context.GioHangs
                 .Include(g => g.ChiTietGioHangs)
                 .FirstOrDefault(g => g.TaiKhoanId == gioHangs.TaiKhoanId);
@@ -135,11 +135,11 @@ namespace WebAppDoCongNghe.Controllers
                 return BadRequest(new
                 {
                     success = false,
-                    message = "User của bạn không có giỏ hàng."
+                    message = "User c?a b?n kh�ng c� gi? h�ng."
                 });
             }
 
-            // Kiểm tra sản phẩm đã có trong giỏ chưa
+            // Ki?m tra s?n ph?m d� c� trong gi? chua
             var chiTiet = gioHang.ChiTietGioHangs
                 .FirstOrDefault(c => c.SanPhamId == gioHangs.sanPhamId);
 
@@ -152,11 +152,11 @@ namespace WebAppDoCongNghe.Controllers
                     return BadRequest(new
                     {
                         success = false,
-                        message = $"Sản phẩm '{sanPham.TenSanPham}' chỉ còn {sanPham.SoLuongTon} cái trong kho."
+                        message = $"S?n ph?m '{sanPham.TenSanPham}' ch? c�n {sanPham.SoLuongTon} c�i trong kho."
                     });
                 }
 
-                chiTiet.SoLuong = soLuongMoi; // Cập nhật số lượng mới
+                chiTiet.SoLuong = soLuongMoi; // C?p nh?t s? lu?ng m?i
             }
             else
             {
@@ -165,7 +165,7 @@ namespace WebAppDoCongNghe.Controllers
                     return BadRequest(new
                     {
                         success = false,
-                        message = $"Sản phẩm '{sanPham.TenSanPham}' chỉ còn {sanPham.SoLuongTon} cái trong kho."
+                        message = $"S?n ph?m '{sanPham.TenSanPham}' ch? c�n {sanPham.SoLuongTon} c�i trong kho."
                     });
                 }
 
@@ -183,18 +183,18 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new
             {
                 success = true,
-                message = "Đã thêm sản phẩm vào giỏ hàng thành công."
+                message = "�� th�m s?n ph?m v�o gi? h�ng th�nh c�ng."
             });
         }
 
 
-        // . Cập nhật số lượng sản phẩm
+        // . C?p nh?t s? lu?ng s?n ph?m
         [HttpPut("CapNhat")]
         public IActionResult CapNhatSoLuong(int chiTietId, int soLuongMoi)
         {
             if (soLuongMoi <= 0)
             {
-                return BadRequest(new { success = false, message = "Số lượng phải lớn hơn 0." });
+                return BadRequest(new { success = false, message = "S? lu?ng ph?i l?n hon 0." });
             }
 
             var item = _context.ChiTietGioHangs
@@ -202,42 +202,42 @@ namespace WebAppDoCongNghe.Controllers
                 .FirstOrDefault(c => c.Id == chiTietId);
 
             if (item == null)
-                return NotFound(new { success = false, message = "Không tìm thấy sản phẩm trong giỏ hàng." });
+                return NotFound(new { success = false, message = "Kh�ng t�m th?y s?n ph?m trong gi? h�ng." });
 
             var sanPham = item.SanPham;
             if (sanPham == null)
-                return NotFound(new { success = false, message = "Sản phẩm không tồn tại." });
+                return NotFound(new { success = false, message = "S?n ph?m kh�ng t?n t?i." });
 
             if (soLuongMoi > sanPham.SoLuongTon)
             {
                 return BadRequest(new
                 {
                     success = false,
-                    message = $"Sản phẩm '{sanPham.TenSanPham}' chỉ còn {sanPham.SoLuongTon} cái trong kho."
+                    message = $"S?n ph?m '{sanPham.TenSanPham}' ch? c�n {sanPham.SoLuongTon} c�i trong kho."
                 });
             }
 
             item.SoLuong = soLuongMoi;
             _context.SaveChanges();
 
-            return Ok(new { success = true, message = "Cập nhật số lượng thành công." });
+            return Ok(new { success = true, message = "C?p nh?t s? lu?ng th�nh c�ng." });
         }
 
-        // Xóa 1 sản phẩm khỏi giỏ hàng
+        // X�a 1 s?n ph?m kh?i gi? h�ng
         [HttpDelete("Xoa/{chiTietId}")]
         public IActionResult XoaSanPham(int chiTietId)
         {
             var item = _context.ChiTietGioHangs.Find(chiTietId);
             if (item == null)
-                return NotFound(new { success = false, message = "Không tìm thấy sản phẩm trong giỏ hàng" });
+                return NotFound(new { success = false, message = "Kh�ng t�m th?y s?n ph?m trong gi? h�ng" });
 
             _context.ChiTietGioHangs.Remove(item);
             _context.SaveChanges();
 
-            return Ok(new { success = true, message = "Đã xóa sản phẩm khỏi giỏ hàng" });
+            return Ok(new { success = true, message = "�� x�a s?n ph?m kh?i gi? h�ng" });
         }
 
-        // Xóa toàn bộ giỏ hàng (clear)
+        // X�a to�n b? gi? h�ng (clear)
         [HttpDelete("Clear/{taiKhoanId}")]
         public IActionResult XoaTatCa(int taiKhoanId)
         {
@@ -246,12 +246,12 @@ namespace WebAppDoCongNghe.Controllers
                 .FirstOrDefault(g => g.TaiKhoanId == taiKhoanId);
 
             if (gioHang == null)
-                return NotFound(new { success = false, message = "Giỏ hàng không tồn tại" });
+                return NotFound(new { success = false, message = "Gi? h�ng kh�ng t?n t?i" });
 
             _context.ChiTietGioHangs.RemoveRange(gioHang.ChiTietGioHangs);
             _context.SaveChanges();
 
-            return Ok(new { success = true, message = "Đã xóa toàn bộ sản phẩm trong giỏ hàng" });
+            return Ok(new { success = true, message = "�� x�a to�n b? s?n ph?m trong gi? h�ng" });
         }
 
         [HttpGet("XemChiTiet/{taiKhoanId}")]
@@ -268,7 +268,7 @@ namespace WebAppDoCongNghe.Controllers
                 return Ok(new
                 {
                     success = true,
-                    message = "Giỏ hàng trống.",
+                    message = "Gi? h�ng tr?ng.",
                     tongTien = 0,
                     soLuongSanPham = 0,
                     data = new List<object>()
@@ -280,10 +280,10 @@ namespace WebAppDoCongNghe.Controllers
                 var giaGoc = c.SanPham?.Gia ?? 0;
                 var sanPhamId = c.SanPhamId ?? 0;
                 
-                // Tính giá giảm từ khuyến mãi
+                // T�nh gi� gi?m t? khuy?n m�i
                 var giaGiamTuKhuyenMai = TinhGiaGiamTuKhuyenMai(giaGoc, sanPhamId);
                 
-                // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ hoặc giá gốc
+                // Uu ti�n gi� gi?m t? khuy?n m�i, n?u kh�ng c� th� d�ng gi� gi?m cu ho?c gi� g?c
                 var giaCuoiCung = giaGiamTuKhuyenMai < giaGoc ? giaGiamTuKhuyenMai : (c.SanPham?.GiaGiam ?? giaGoc);
                 var soLuong = c.SoLuong ?? 0;
                 var thanhTien = giaCuoiCung * soLuong;
@@ -298,9 +298,9 @@ namespace WebAppDoCongNghe.Controllers
                     SoLuong = soLuong,
                     ThanhTien = thanhTien,
 
-                    //  Lấy URL ảnh đầu tiên từ Cloudinary
+                    //  L?y URL ?nh d?u ti�n t? Cloudinary
                     AnhDaiDien = c.SanPham?.HinhAnhSanPhams != null && c.SanPham.HinhAnhSanPhams.Any()
-                ? c.SanPham.HinhAnhSanPhams.First().HinhAnh // hoặc .DuongDan nếu bạn đặt tên khác
+                ? c.SanPham.HinhAnhSanPhams.First().HinhAnh // ho?c .DuongDan n?u b?n d?t t�n kh�c
                 : null
                 };
             }).ToList();
@@ -311,7 +311,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new
             {
                 success = true,
-                message = "Lấy chi tiết giỏ hàng thành công.",
+                message = "L?y chi ti?t gi? h�ng th�nh c�ng.",
                 tongTien,
                 tongSoLuong,
                 data

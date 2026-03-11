@@ -1,8 +1,8 @@
-﻿using Azure.Core;
+using Azure.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 using WebAppDoCongNghe.Models.model;
 using WebAppDoCongNghe.Service;
 
@@ -12,10 +12,10 @@ namespace WebAppDoCongNghe.Controllers
     [ApiController]
     public class TinTucController : ControllerBase
     {
-        private readonly WebAppDoCongNgheContext _context;
+        private readonly AppDbContext _context;
 
         private readonly ICloudinaryService _cloudinaryService;
-        public TinTucController(WebAppDoCongNgheContext context, ICloudinaryService cloudinaryService)
+        public TinTucController(AppDbContext context, ICloudinaryService cloudinaryService)
         {
             _context = context;
             _cloudinaryService = cloudinaryService;
@@ -36,7 +36,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new
             {
                 success = true,
-                message = "Lấy danh sách tin tức thành công",
+                message = "L?y danh s�ch tin t?c th�nh c�ng",
                 data = new
                 {
                     items = items,
@@ -54,7 +54,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Các tin tức sản phẩm",
+                Message = "C�c tin t?c s?n ph?m",
                 Data = items
             });
         }
@@ -64,12 +64,12 @@ namespace WebAppDoCongNghe.Controllers
         {
             var tin = _context.TinTucs.Find(id);
             if (tin == null)
-                return NotFound("Không tìm thấy tin tức");
+                return NotFound("Kh�ng t�m th?y tin t?c");
 
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Các tin tức sản phẩm",
+                Message = "C�c tin t?c s?n ph?m",
                 Data = tin
             }
                 );
@@ -83,7 +83,7 @@ namespace WebAppDoCongNghe.Controllers
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
-                    Message = "Dữ liệu không hợp lệ"
+                    Message = "D? li?u kh�ng h?p l?"
                 });
             }
 
@@ -110,7 +110,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Thêm tin tức thành công",
+                Message = "Th�m tin t?c th�nh c�ng",
                 Data = tin
             });
         }
@@ -126,7 +126,7 @@ namespace WebAppDoCongNghe.Controllers
                 return NotFound(new ApiRespone
                 {
                     Success = false,
-                    Message = "Tin tức không tồn tại"
+                    Message = "Tin t?c kh�ng t?n t?i"
                 });
             }
 
@@ -150,7 +150,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Cập nhật tin tức thành công",
+                Message = "C?p nh?t tin t?c th�nh c�ng",
                 Data = tin
             });
         }
@@ -165,7 +165,7 @@ namespace WebAppDoCongNghe.Controllers
                 return NotFound(new ApiRespone
                 {
                     Success = false,
-                    Message = "Tin tức không tồn tại"
+                    Message = "Tin t?c kh�ng t?n t?i"
                 });
             }
 
@@ -175,7 +175,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Xoá tin tức thành công"
+                Message = "Xo� tin t?c th�nh c�ng"
             });
         }
 

@@ -1,4 +1,4 @@
-﻿using BanDoCongNghe.Services.VnpayServices;
+using BanDoCongNghe.Services.VnpayServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -8,7 +8,7 @@ using QuanLyDatVeMayBay.Services.VnpayServices.Enums;
 using VNPAY.NET.Models;
 using VNPAY.NET.Utilities;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 using WebAppDoCongNghe.Models.model;
 using WebAppDoCongNghe.Service;
 
@@ -18,14 +18,14 @@ namespace WebAppDoCongNghe.Controllers
     [ApiController]
     public class ThanhToanController : ControllerBase
     {
-        private readonly WebAppDoCongNgheContext _context;
+        private readonly AppDbContext _context;
 
         private readonly IVnpay _vpnpay;
 
         private readonly VNPayConfig _config;
 
         private readonly IHubContext<NotificationHub> _hubContext;
-        public ThanhToanController(IVnpay vnpay, IOptions<VNPayConfig> config, IHubContext<NotificationHub> hubContext , WebAppDoCongNgheContext context)
+        public ThanhToanController(IVnpay vnpay, IOptions<VNPayConfig> config, IHubContext<NotificationHub> hubContext , AppDbContext context)
         {
 
             _context = context;
@@ -41,12 +41,12 @@ namespace WebAppDoCongNghe.Controllers
             _hubContext = hubContext;
         }
 
-        // Helper method để tính giá giảm từ khuyến mãi
+        // Helper method d? t�nh gi� gi?m t? khuy?n m�i
         private decimal TinhGiaGiamTuKhuyenMai(decimal giaGoc, int sanPhamId)
         {
             var today = DateOnly.FromDateTime(DateTime.Now);
             
-            // Lấy khuyến mãi đang active cho sản phẩm này
+            // L?y khuy?n m�i dang active cho s?n ph?m n�y
             var khuyenMaiActive = _context.SanPhamKhuyenMais
                 .Include(spkm => spkm.KhuyenMai)
                 .Where(spkm => spkm.SanPhamId == sanPhamId 
@@ -60,61 +60,61 @@ namespace WebAppDoCongNghe.Controllers
 
             if (khuyenMaiActive > 0)
             {
-                // Tính giá giảm: giá gốc * (1 - phần trăm giảm / 100)
+                // T�nh gi� gi?m: gi� g?c * (1 - ph?n tram gi?m / 100)
                 return giaGoc * (1 - khuyenMaiActive / 100);
             }
 
-            // Nếu không có khuyến mãi, trả về giá gốc
+            // N?u kh�ng c� khuy?n m�i, tr? v? gi� g?c
             return giaGoc;
         }
 
         [HttpGet("ThanhToan/Xem/{taiKhoanId}")]
         public IActionResult XemSanPhamThanhToan(int taiKhoanId)
         {
-            //  Lấy tài khoản
+            //  L?y t�i kho?n
             var taiKhoan = _context.TaiKhoans
                 .FirstOrDefault(t => t.Id == taiKhoanId);
 
             if (taiKhoan == null)
-                return NotFound(new { success = false, message = "Không tìm thấy tài khoản." });
+                return NotFound(new { success = false, message = "Kh�ng t�m th?y t�i kho?n." });
 
-            //  Lấy giỏ hàng của tài khoản
+            //  L?y gi? h�ng c?a t�i kho?n
             var gioHang = _context.GioHangs.FirstOrDefault(g => g.TaiKhoanId == taiKhoanId);
             if (gioHang == null)
-                return Ok(new { success = false, message = "Giỏ hàng trống." });
+                return Ok(new { success = false, message = "Gi? h�ng tr?ng." });
 
-            //  Lấy chi tiết giỏ hàng
+            //  L?y chi ti?t gi? h�ng
             var chiTietList = _context.ChiTietGioHangs
                 .Where(c => c.GioHangId == gioHang.Id)
                 .ToList();
 
             if (!chiTietList.Any())
-                return Ok(new { success = false, message = "Giỏ hàng trống." });
+                return Ok(new { success = false, message = "Gi? h�ng tr?ng." });
 
-            //  Lấy danh sách sản phẩm liên quan
+            //  L?y danh s�ch s?n ph?m li�n quan
             var sanPhamIds = chiTietList.Select(c => c.SanPhamId).ToList();
             var sanPhamDict = _context.SanPhams
                 .Where(sp => sanPhamIds.Contains(sp.Id))
                 .ToDictionary(sp => sp.Id, sp => sp);
 
-            //  Lấy hình ảnh đầu tiên của mỗi sản phẩm
+            //  L?y h�nh ?nh d?u ti�n c?a m?i s?n ph?m
             var hinhAnhDict = _context.HinhAnhSanPhams
                 .Where(h => sanPhamIds.Contains(h.SanPhamId))
                 .GroupBy(h => h.SanPhamId)
                 .ToDictionary(g => g.Key, g => g.Select(x => x.HinhAnh).FirstOrDefault());
 
-            //  Gộp dữ liệu và tính giá giảm từ khuyến mãi
+            //  G?p d? li?u v� t�nh gi� gi?m t? khuy?n m�i
             var data = chiTietList.Select(c =>
             {
                 var sanPhamId = c.SanPhamId.GetValueOrDefault();
                 var sp = sanPhamDict[sanPhamId];
                 var anh = hinhAnhDict.ContainsKey(sanPhamId) ? hinhAnhDict[sanPhamId] : null;
                 
-                // Tính giá giảm từ khuyến mãi
+                // T�nh gi� gi?m t? khuy?n m�i
                 var giaGoc = sp.Gia;
                 var giaGiamTuKhuyenMai = TinhGiaGiamTuKhuyenMai(giaGoc, sanPhamId);
                 
-                // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ hoặc giá gốc
+                // Uu ti�n gi� gi?m t? khuy?n m�i, n?u kh�ng c� th� d�ng gi� gi?m cu ho?c gi� g?c
                 var giaCuoiCung = giaGiamTuKhuyenMai < giaGoc ? giaGiamTuKhuyenMai : (sp.GiaGiam ?? giaGoc);
                 var thanhTien = giaCuoiCung * c.SoLuong;
 
@@ -132,7 +132,7 @@ namespace WebAppDoCongNghe.Controllers
 
             var tongTien = data.Sum(x => x.ThanhTien);
 
-            //  Lấy danh sách voucher đã claim và chưa sử dụng của user
+            //  L?y danh s�ch voucher d� claim v� chua s? d?ng c?a user
             var now = DateTime.Now;
             var vouchers = _context.TaiKhoanPhieuGiamGia
                 .Where(uv => uv.TaiKhoanId == taiKhoanId && uv.DaSuDung == false)
@@ -153,11 +153,11 @@ namespace WebAppDoCongNghe.Controllers
                 })
                 .ToList();
 
-            //  Trả về kết quả có thông tin user và voucher
+            //  Tr? v? k?t qu? c� th�ng tin user v� voucher
             return Ok(new
             {
                 success = true,
-                message = "Lấy danh sách sản phẩm thanh toán thành công.",
+                message = "L?y danh s�ch s?n ph?m thanh to�n th�nh c�ng.",
                 tongTien,
                 khachHang = new
                 {
@@ -166,7 +166,7 @@ namespace WebAppDoCongNghe.Controllers
                     SoDienThoai = taiKhoan.SoDienThoai,
                     DiaChi = taiKhoan.DiaChi
                 },
-                vouchers = vouchers, // Danh sách voucher có thể sử dụng
+                vouchers = vouchers, // Danh s�ch voucher c� th? s? d?ng
                 data
             });
         }
@@ -179,7 +179,7 @@ namespace WebAppDoCongNghe.Controllers
             {
                 PaymentId = DateTime.Now.Ticks,
                 Money = (double)50000,
-                Description = "Thanh toán sản phẩm!",
+                Description = "Thanh to�n s?n ph?m!",
                 IpAddress = ipAddress,
                 CreatedDate = DateTime.Now,
                 Currency = Currency.VND,
@@ -189,7 +189,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new
             {
                 statusCode = 201,
-                message = "Đang chuyển đến trang thanh toán VNPay...",
+                message = "�ang chuy?n d?n trang thanh to�n VNPay...",
                 url = paymentUrl,
                 state = state
             });
@@ -199,17 +199,17 @@ namespace WebAppDoCongNghe.Controllers
         public IActionResult DatHang([FromBody] DatHangRequest model)
         {
             if (model == null)
-                return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ." });
+                return BadRequest(new { success = false, message = "D? li?u kh�ng h?p l?." });
 
             var gioHang = _context.GioHangs.FirstOrDefault(g => g.TaiKhoanId == model.TaiKhoanId);
             if (gioHang == null)
-                return BadRequest(new { success = false, message = "Không tìm thấy giỏ hàng." });
+                return BadRequest(new { success = false, message = "Kh�ng t�m th?y gi? h�ng." });
 
             var chiTietGioHang = _context.ChiTietGioHangs
                                          .Where(c => c.GioHangId == gioHang.Id)
                                          .ToList();
             if (chiTietGioHang.Count == 0)
-                return BadRequest(new { success = false, message = "Giỏ hàng trống." });
+                return BadRequest(new { success = false, message = "Gi? h�ng tr?ng." });
 
             var sanPhamIds = chiTietGioHang.Select(c => c.SanPhamId).ToList();
             var sanPhamDict = _context.SanPhams
@@ -222,80 +222,80 @@ namespace WebAppDoCongNghe.Controllers
             {
                 if (sanPhamDict.TryGetValue(item.SanPhamId.GetValueOrDefault(), out var sanPham))
                 {
-                    // Tính giá giảm từ khuyến mãi
+                    // T�nh gi� gi?m t? khuy?n m�i
                     var giaGoc = sanPham.Gia;
                     var giaGiamTuKhuyenMai = TinhGiaGiamTuKhuyenMai(giaGoc, sanPham.Id);
                     
-                    // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ hoặc giá gốc
+                    // Uu ti�n gi� gi?m t? khuy?n m�i, n?u kh�ng c� th� d�ng gi� gi?m cu ho?c gi� g?c
                     var giaCuoiCung = giaGiamTuKhuyenMai < giaGoc ? giaGiamTuKhuyenMai : (sanPham.GiaGiam ?? giaGoc);
                     
                     tongTien += giaCuoiCung * item.SoLuong;
                 }
             }
 
-            //  Xử lý mã giảm giá (nếu có)
+            //  X? l� m� gi?m gi� (n?u c�)
             decimal? tienGiam = 0;
             int? phieuGiamGiaId = null;
             TaiKhoanPhieuGiamGium? userVoucher = null;
 
             if (!string.IsNullOrWhiteSpace(model.MaPhieuGiamGia))
             {
-                // Tìm phiếu giảm giá theo mã
+                // T�m phi?u gi?m gi� theo m�
                 var voucher = _context.PhieuGiamGia
                     .FirstOrDefault(v => v.MaPhieu == model.MaPhieuGiamGia.Trim());
 
                 if (voucher == null)
                 {
-                    return BadRequest(new { success = false, message = "Mã giảm giá không tồn tại." });
+                    return BadRequest(new { success = false, message = "M� gi?m gi� kh�ng t?n t?i." });
                 }
 
-                // Kiểm tra voucher còn hạn
+                // Ki?m tra voucher c�n h?n
                 var now = DateTime.Now;
                 if (now < voucher.NgayBatDau || now > voucher.NgayKetThuc)
                 {
-                    return BadRequest(new { success = false, message = "Mã giảm giá đã hết hạn sử dụng." });
+                    return BadRequest(new { success = false, message = "M� gi?m gi� d� h?t h?n s? d?ng." });
                 }
 
-                // Kiểm tra voucher còn số lượng
+                // Ki?m tra voucher c�n s? lu?ng
                 if (voucher.SoLuong <= 0)
                 {
-                    return BadRequest(new { success = false, message = "Mã giảm giá đã hết số lượng." });
+                    return BadRequest(new { success = false, message = "M� gi?m gi� d� h?t s? lu?ng." });
                 }
 
-                // Kiểm tra trạng thái voucher
+                // Ki?m tra tr?ng th�i voucher
                 if (voucher.TrangThai != true)
                 {
-                    return BadRequest(new { success = false, message = "Mã giảm giá đang tạm ngưng." });
+                    return BadRequest(new { success = false, message = "M� gi?m gi� dang t?m ngung." });
                 }
 
-                // Kiểm tra user đã claim voucher chưa
+                // Ki?m tra user d� claim voucher chua
                 userVoucher = _context.TaiKhoanPhieuGiamGia
                     .FirstOrDefault(uv => uv.TaiKhoanId == model.TaiKhoanId 
                                       && uv.PhieuGiamGiaId == voucher.Id);
 
                 if (userVoucher == null)
                 {
-                    return BadRequest(new { success = false, message = "Bạn chưa nhận mã giảm giá này. Vui lòng nhận mã trước khi sử dụng." });
+                    return BadRequest(new { success = false, message = "B?n chua nh?n m� gi?m gi� n�y. Vui l�ng nh?n m� tru?c khi s? d?ng." });
                 }
 
-                // Kiểm tra voucher đã được dùng chưa
+                // Ki?m tra voucher d� du?c d�ng chua
                 if (userVoucher.DaSuDung == true)
                 {
-                    return BadRequest(new { success = false, message = "Mã giảm giá này đã được sử dụng." });
+                    return BadRequest(new { success = false, message = "M� gi?m gi� n�y d� du?c s? d?ng." });
                 }
 
-                // Tính toán tiền giảm
+                // T�nh to�n ti?n gi?m
                 if (voucher.KieuGiam == "percentage")
                 {
-                    // Giảm theo phần trăm (tối đa 99%)
+                    // Gi?m theo ph?n tram (t?i da 99%)
                     var phanTram = Math.Min((double)voucher.GiaTriGiam, 99);
                     tienGiam = tongTien * (decimal)(phanTram / 100);
                 }
                 else
                 {
-                    // Giảm theo số tiền cố định
+                    // Gi?m theo s? ti?n c? d?nh
                     tienGiam = voucher.GiaTriGiam;
-                    // Đảm bảo không giảm quá tổng tiền
+                    // �?m b?o kh�ng gi?m qu� t?ng ti?n
                     if (tienGiam > tongTien)
                     {
                         tienGiam = tongTien;
@@ -305,11 +305,11 @@ namespace WebAppDoCongNghe.Controllers
                 phieuGiamGiaId = voucher.Id;
             }
 
-            // Tính tổng tiền sau giảm giá
+            // T�nh t?ng ti?n sau gi?m gi�
             var tongTienSauGiam = tongTien - tienGiam;
             if (tongTienSauGiam < 0) tongTienSauGiam = 0;
 
-            //  Nếu thanh toán VNPay, chỉ tạo ThanhToanTam tạm thời, chưa tạo đơn hàng
+            //  N?u thanh to�n VNPay, ch? t?o ThanhToanTam t?m th?i, chua t?o don h�ng
             if (model.payment == 1)
             {
               
@@ -330,13 +330,13 @@ namespace WebAppDoCongNghe.Controllers
 
                 var thanhToanTam = new ThanhToanTam
                 {
-                    DonHangId = null, // Chưa có đơn hàng
+                    DonHangId = null, // Chua c� don h�ng
                     TongTien = tongTienSauGiam.Value,
                     IsVnPay = false,
-                    TrangThai = "Chờ thanh toán VNPay",
+                    TrangThai = "Ch? thanh to�n VNPay",
                     NgayTao = DateTime.Now,
                     TaiKhoanId = model.TaiKhoanId,
-                    NoiDung = orderInfoJson // Lưu thông tin đơn hàng tạm thời
+                    NoiDung = orderInfoJson // Luu th�ng tin don h�ng t?m th?i
                 };
                 _context.ThanhToanTams.Add(thanhToanTam);
                 _context.SaveChanges();
@@ -347,7 +347,7 @@ namespace WebAppDoCongNghe.Controllers
                 {
                     PaymentId = thanhToanTam.Id,
                     Money = (double)tongTienSauGiam,
-                    Description = "Thanh toán sản phẩm!",
+                    Description = "Thanh to�n s?n ph?m!",
                     IpAddress = ipAddress,
                     CreatedDate = DateTime.Now,
                     Currency = Currency.VND,
@@ -357,13 +357,13 @@ namespace WebAppDoCongNghe.Controllers
                 return Ok(new
                 {
                     statusCode = 201,
-                    message = "Đang chuyển đến trang thanh toán VNPay...",
+                    message = "�ang chuy?n d?n trang thanh to�n VNPay...",
                     url = paymentUrl,
                     state = state
                 });
             }
 
-            // Nếu thanh toán COD, tạo đơn hàng ngay
+            // N?u thanh to�n COD, t?o don h�ng ngay
             var donHang = new DonHang
             {
                 TaiKhoanId = model.TaiKhoanId,
@@ -379,7 +379,7 @@ namespace WebAppDoCongNghe.Controllers
             _context.DonHangs.Add(donHang);
             _context.SaveChanges();
 
-            // Cập nhật trạng thái voucher đã sử dụng (nếu có)
+            // C?p nh?t tr?ng th�i voucher d� s? d?ng (n?u c�)
             if (userVoucher != null && phieuGiamGiaId.HasValue)
             {
                 userVoucher.DaSuDung = true;
@@ -391,11 +391,11 @@ namespace WebAppDoCongNghe.Controllers
             {
                 if (sanPhamDict.TryGetValue(item.SanPhamId.GetValueOrDefault(), out var sanPham))
                 {
-                    // Tính giá giảm từ khuyến mãi để lưu vào đơn hàng
+                    // T�nh gi� gi?m t? khuy?n m�i d? luu v�o don h�ng
                     var giaGoc = sanPham.Gia;
                     var giaGiamTuKhuyenMai = TinhGiaGiamTuKhuyenMai(giaGoc, sanPham.Id);
                     
-                    // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ hoặc giá gốc
+                    // Uu ti�n gi� gi?m t? khuy?n m�i, n?u kh�ng c� th� d�ng gi� gi?m cu ho?c gi� g?c
                     var giaCuoiCung = giaGiamTuKhuyenMai < giaGoc ? giaGiamTuKhuyenMai : (sanPham.GiaGiam ?? giaGoc);
                     
                     _context.ChiTietDonHangs.Add(new ChiTietDonHang
@@ -403,14 +403,14 @@ namespace WebAppDoCongNghe.Controllers
                         DonHangId = donHang.Id,
                         SanPhamId = item.SanPhamId,
                         SoLuong = item.SoLuong,
-                        DonGia = giaCuoiCung // Lưu giá giảm vào đơn hàng
+                        DonGia = giaCuoiCung // Luu gi� gi?m v�o don h�ng
                     });
                     if (item.SoLuong > sanPham.SoLuongTon)
                     {
                         return Ok(new
                         {
                             success = false,
-                            message = "có vấn đề xáy ra khi lưu"
+                            message = "c� v?n d? x�y ra khi luu"
                         });
                     }
                     sanPham.SoLuongTon = sanPham.SoLuongTon - item.SoLuong;
@@ -422,7 +422,7 @@ namespace WebAppDoCongNghe.Controllers
                 DonHangId = donHang.Id,
                 TongTien = tongTienSauGiam.Value,
                 IsVnPay = false,
-                TrangThai = "Chưa thanh toán",
+                TrangThai = "Chua thanh to�n",
                 NgayTao = DateTime.Now,
                 TaiKhoanId = model.TaiKhoanId,
             };
@@ -431,20 +431,20 @@ namespace WebAppDoCongNghe.Controllers
             var giaoHang = new GiaoHang
             {
                 DonHangId = donHang.Id,
-                TrangThai = "Đang chuẩn bị hàng",
+                TrangThai = "�ang chu?n b? h�ng",
                 NgayCapNhat = DateTime.Now,
-                DonViVanChuyen = "Chưa xác định"
+                DonViVanChuyen = "Chua x�c d?nh"
             };
             _context.GiaoHangs.Add(giaoHang);
 
             var thongBaoNoiDung = phieuGiamGiaId.HasValue
-                ? $"Bạn đã đặt đơn hàng #{donHang.Id} với tổng tiền {tongTienSauGiam:N0} VND (đã giảm {tienGiam:N0} VND). Đơn hàng đang được xử lý."
-                : $"Bạn đã đặt đơn hàng #{donHang.Id} với tổng tiền {tongTienSauGiam:N0} VND. Đơn hàng đang được xử lý.";
+                ? $"B?n d� d?t don h�ng #{donHang.Id} v?i t?ng ti?n {tongTienSauGiam:N0} VND (d� gi?m {tienGiam:N0} VND). �on h�ng dang du?c x? l�."
+                : $"B?n d� d?t don h�ng #{donHang.Id} v?i t?ng ti?n {tongTienSauGiam:N0} VND. �on h�ng dang du?c x? l�.";
 
             var thongBao = new ThongBao
             {
                 TaiKhoanId = model.TaiKhoanId,
-                TieuDe = "Đặt hàng thành công",
+                TieuDe = "�?t h�ng th�nh c�ng",
                 NoiDung = thongBaoNoiDung,
                 NgayTao = DateTime.Now,
                 DaXem = false
@@ -457,7 +457,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new
             {
                 success = true,
-                message = "Đặt hàng thành công!",
+                message = "�?t h�ng th�nh c�ng!",
             });
         }
 
@@ -474,14 +474,14 @@ namespace WebAppDoCongNghe.Controllers
                     {
                         return BadRequest(new
                         {
-                            message = "Không tìm thấy thông tin thanh toán"
+                            message = "Kh�ng t�m th?y th�ng tin thanh to�n"
                         });
                     }
 
-                    // 🔹 Kiểm tra nếu đơn hàng chưa được tạo (DonHangId == null) thì tạo đơn hàng
+                    // ?? Ki?m tra n?u don h�ng chua du?c t?o (DonHangId == null) th� t?o don h�ng
                     if (ThanhToan.DonHangId == null && !string.IsNullOrEmpty(ThanhToan.NoiDung))
                     {
-                        // Parse thông tin đơn hàng từ NoiDung (JSON)
+                        // Parse th�ng tin don h�ng t? NoiDung (JSON)
                         var orderInfo = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(ThanhToan.NoiDung);
                         
                         var taiKhoanId = orderInfo.GetProperty("TaiKhoanId").GetInt32();
@@ -493,20 +493,20 @@ namespace WebAppDoCongNghe.Controllers
                             : (int?)null;
                         var chiTietGioHang = orderInfo.GetProperty("ChiTietGioHang").EnumerateArray().ToList();
 
-                        // Lấy giỏ hàng
+                        // L?y gi? h�ng
                         var gioHang = _context.GioHangs.FirstOrDefault(g => g.TaiKhoanId == taiKhoanId);
                         if (gioHang == null)
                         {
-                            return BadRequest(new { message = "Không tìm thấy giỏ hàng." });
+                            return BadRequest(new { message = "Kh�ng t�m th?y gi? h�ng." });
                         }
 
-                        // Tạo đơn hàng
+                        // T?o don h�ng
                         var donHang = new DonHang
                         {
                             TaiKhoanId = taiKhoanId,
                             NgayDat = DateTime.Now,
                             TongTien = tongTien,
-                            TrangThai = "Chờ xác nhận",
+                            TrangThai = "Ch? x�c nh?n",
                             DiaChiGiao = diaChiGiao,
                             GhiChu = ghiChu,
                             PhuongThucThanhToan = true,
@@ -515,13 +515,13 @@ namespace WebAppDoCongNghe.Controllers
                         _context.DonHangs.Add(donHang);
                         await _context.SaveChangesAsync();
 
-                        // Lấy thông tin sản phẩm
+                        // L?y th�ng tin s?n ph?m
                         var sanPhamIds = chiTietGioHang.Select(c => c.GetProperty("SanPhamId").GetInt32()).ToList();
                         var sanPhamDict = _context.SanPhams
                             .Where(sp => sanPhamIds.Contains(sp.Id))
                             .ToDictionary(sp => sp.Id, sp => sp);
 
-                        // Tạo chi tiết đơn hàng và trừ số lượng tồn kho
+                        // T?o chi ti?t don h�ng v� tr? s? lu?ng t?n kho
                         foreach (var item in chiTietGioHang)
                         {
                             var sanPhamId = item.GetProperty("SanPhamId").GetInt32();
@@ -529,11 +529,11 @@ namespace WebAppDoCongNghe.Controllers
 
                             if (sanPhamDict.TryGetValue(sanPhamId, out var sanPham))
                             {
-                                // Tính giá giảm từ khuyến mãi để lưu vào đơn hàng
+                                // T�nh gi� gi?m t? khuy?n m�i d? luu v�o don h�ng
                                 var giaGoc = sanPham.Gia;
                                 var giaGiamTuKhuyenMai = TinhGiaGiamTuKhuyenMai(giaGoc, sanPham.Id);
                                 
-                                // Ưu tiên giá giảm từ khuyến mãi, nếu không có thì dùng giá giảm cũ hoặc giá gốc
+                                // Uu ti�n gi� gi?m t? khuy?n m�i, n?u kh�ng c� th� d�ng gi� gi?m cu ho?c gi� g?c
                                 var giaCuoiCung = giaGiamTuKhuyenMai < giaGoc ? giaGiamTuKhuyenMai : (sanPham.GiaGiam ?? giaGoc);
                                 
                                 _context.ChiTietDonHangs.Add(new ChiTietDonHang
@@ -541,18 +541,18 @@ namespace WebAppDoCongNghe.Controllers
                                     DonHangId = donHang.Id,
                                     SanPhamId = sanPhamId,
                                     SoLuong = soLuong,
-                                    DonGia = giaCuoiCung // Lưu giá giảm vào đơn hàng
+                                    DonGia = giaCuoiCung // Luu gi� gi?m v�o don h�ng
                                 });
 
                                 if (soLuong > sanPham.SoLuongTon)
                                 {
-                                    return BadRequest(new { message = "Sản phẩm không đủ số lượng trong kho." });
+                                    return BadRequest(new { message = "S?n ph?m kh�ng d? s? lu?ng trong kho." });
                                 }
                                 sanPham.SoLuongTon = sanPham.SoLuongTon - soLuong;
                             }
                         }
 
-                        // Cập nhật voucher đã sử dụng (nếu có)
+                        // C?p nh?t voucher d� s? d?ng (n?u c�)
                         if (phieuGiamGiaId.HasValue)
                         {
                             var userVoucher = _context.TaiKhoanPhieuGiamGia
@@ -565,37 +565,37 @@ namespace WebAppDoCongNghe.Controllers
                             }
                         }
 
-                        // Xóa giỏ hàng
+                        // X�a gi? h�ng
                         var chiTietGioHangList = _context.ChiTietGioHangs
                             .Where(c => c.GioHangId == gioHang.Id)
                             .ToList();
                         _context.ChiTietGioHangs.RemoveRange(chiTietGioHangList);
 
-                        // Tạo giao hàng
+                        // T?o giao h�ng
                         var giaoHang = new GiaoHang
                         {
                             DonHangId = donHang.Id,
-                            TrangThai = "Đang chuẩn bị hàng",
+                            TrangThai = "�ang chu?n b? h�ng",
                             NgayCapNhat = DateTime.Now,
-                            DonViVanChuyen = "Chưa xác định"
+                            DonViVanChuyen = "Chua x�c d?nh"
                         };
                         _context.GiaoHangs.Add(giaoHang);
 
-                        // Cập nhật ThanhToanTam với DonHangId
+                        // C?p nh?t ThanhToanTam v?i DonHangId
                         ThanhToan.DonHangId = donHang.Id;
                     }
 
-                    // Cập nhật trạng thái thanh toán
-                    ThanhToan.TrangThai = "đã chuyển khoản";
+                    // C?p nh?t tr?ng th�i thanh to�n
+                    ThanhToan.TrangThai = "d� chuy?n kho?n";
                     ThanhToan.IsVnPay = true;
                     _context.ThanhToanTams.Update(ThanhToan);
 
-                    // Tạo thông báo
+                    // T?o th�ng b�o
                     var thongbao = new ThongBao
                     {
                         TaiKhoanId = ThanhToan.TaiKhoanId,
-                        TieuDe = "Đặt hàng thành công",
-                        NoiDung = $"Bạn đã đặt đơn hàng #{ThanhToan.DonHangId} với tổng tiền {ThanhToan.TongTien:N0} VND với phương thức thanh toán là VNPAY. Đơn hàng đang được xử lý.",
+                        TieuDe = "�?t h�ng th�nh c�ng",
+                        NoiDung = $"B?n d� d?t don h�ng #{ThanhToan.DonHangId} v?i t?ng ti?n {ThanhToan.TongTien:N0} VND v?i phuong th?c thanh to�n l� VNPAY. �on h�ng dang du?c x? l�.",
                         NgayTao = DateTime.Now,
                         DaXem = false
                     };
@@ -613,21 +613,21 @@ namespace WebAppDoCongNghe.Controllers
                             await _hubContext.Clients.Group(state).SendAsync("payment", new
                             {
                                 statusCode = 200,
-                                message = "Đặt hàng thành công!",
+                                message = "�?t h�ng th�nh c�ng!",
                             });
 
-                            Console.WriteLine($"📢 Đã gửi thông báo SignalR tới group: {state}");
+                            Console.WriteLine($"?? �� g?i th�ng b�o SignalR t?i group: {state}");
                         }
                         else
                         {
-                            Console.WriteLine("⚠️ State trống, không gửi được thông báo SignalR");
+                            Console.WriteLine("?? State tr?ng, kh�ng g?i du?c th�ng b�o SignalR");
                         }
                     }
                     catch (Exception hubEx)
                     {
-                        Console.WriteLine("❌ Lỗi khi gửi SignalR: " + hubEx.Message);
+                        Console.WriteLine("? L?i khi g?i SignalR: " + hubEx.Message);
                         if (hubEx.InnerException != null)
-                            Console.WriteLine("➡ Inner: " + hubEx.InnerException.Message);
+                            Console.WriteLine("? Inner: " + hubEx.InnerException.Message);
                     }
 
 
@@ -637,7 +637,7 @@ namespace WebAppDoCongNghe.Controllers
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Thanh toán thành công</title>
+    <title>Thanh to�n th�nh c�ng</title>
     <style>
         body {
             background-color: #f0fdf4;
@@ -694,7 +694,7 @@ namespace WebAppDoCongNghe.Controllers
         
         function updateCountdown() {
             if (countdownElement) {
-                countdownElement.textContent = 'Tự động chuyển về trang chủ sau ' + countdown + ' giây...';
+                countdownElement.textContent = 'T? d?ng chuy?n v? trang ch? sau ' + countdown + ' gi�y...';
             }
             countdown--;
             if (countdown < 0) {
@@ -709,11 +709,11 @@ namespace WebAppDoCongNghe.Controllers
 </head>
 <body>
     <div class='container'>
-        <div class='checkmark'>✓</div>
-        <h1>Thanh toán thành công!</h1>
-        <p>Cảm ơn bạn đã mua hàng.<br>Đơn hàng của bạn đang được xử lý.</p>
-        <p class='countdown' id='countdown'>Tự động chuyển về trang chủ sau 5 giây...</p>
-        <a href='http://localhost:5173/' class='btn'>Về trang chủ ngay</a>
+        <div class='checkmark'>?</div>
+        <h1>Thanh to�n th�nh c�ng!</h1>
+        <p>C?m on b?n d� mua h�ng.<br>�on h�ng c?a b?n dang du?c x? l�.</p>
+        <p class='countdown' id='countdown'>T? d?ng chuy?n v? trang ch? sau 5 gi�y...</p>
+        <a href='http://localhost:5173/' class='btn'>V? trang ch? ngay</a>
     </div>
 </body>
 </html>";
@@ -723,11 +723,11 @@ namespace WebAppDoCongNghe.Controllers
                 }
                 catch (Exception ex)
                 {
-                    return BadRequest(new { success = false, message = "Lỗi thanh toán." });
+                    return BadRequest(new { success = false, message = "L?i thanh to�n." });
                 }
             }
 
-            return NotFound("có gì đó xảy ra rồi");
+            return NotFound("c� g� d� x?y ra r?i");
         }
 
     }

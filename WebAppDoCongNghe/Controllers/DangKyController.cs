@@ -1,8 +1,8 @@
-﻿
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 using WebAppDoCongNghe.Models.model;
 using WebAppDoCongNghe.Service;
 
@@ -12,10 +12,10 @@ namespace WebAppDoCongNghe.Controllers
     [ApiController]
     public class DangKyController : ControllerBase
     {
-        private readonly WebAppDoCongNgheContext _context;
+        private readonly AppDbContext _context;
         private readonly PublicService _publicService;
 
-        public DangKyController(WebAppDoCongNgheContext context, PublicService publicService)
+        public DangKyController(AppDbContext context, PublicService publicService)
         {
             _context = context;
             _publicService = publicService;
@@ -24,38 +24,38 @@ namespace WebAppDoCongNghe.Controllers
         [HttpPost("register")]
         public IActionResult Register([FromBody] DangKy request)
         {
-            //  Kiểm tra dữ liệu đầu vào
+            //  Ki?m tra d? li?u d?u v�o
             if (!ModelState.IsValid)
             {
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
-                    Message = "Dữ liệu nhập vào không hợp lệ, vui lòng kiểm tra lại."
+                    Message = "D? li?u nh?p v�o kh�ng h?p l?, vui l�ng ki?m tra l?i."
                 });
             }
 
-            //  Kiểm tra email đã tồn tại 
+            //  Ki?m tra email d� t?n t?i 
             var existingEmail = _context.TaiKhoans.FirstOrDefault(u => u.Email == request.Email);
             if (existingEmail != null)
             {
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
-                    Message = "Email đã được sử dụng."
+                    Message = "Email d� du?c s? d?ng."
                 });
             }
 
-            //  Kiểm tra  số điện thoai đã tồn tại
+            //  Ki?m tra  s? di?n thoai d� t?n t?i
             var existingPhone = _context.TaiKhoans.FirstOrDefault(u => u.SoDienThoai == request.SoDienThoai);
             if (existingPhone != null)
             {
                 return BadRequest(new ApiRespone
                 {
                     Success = false,
-                    Message = "Số điện thoại đã được sử dụng."
+                    Message = "S? di?n tho?i d� du?c s? d?ng."
                 });
             }
-            // Tạo mới user 
+            // T?o m?i user 
             var newUser = new TaiKhoan
             {
                 HoTen = request.HoTen,
@@ -80,7 +80,7 @@ namespace WebAppDoCongNghe.Controllers
             return Ok(new ApiRespone
             {
                 Success = true,
-                Message = "Đăng ký thành công , Giỏ hàng của bạn đã được tạo! Vui lòng đăng nhập để tiếp tục.",
+                Message = "�ang k� th�nh c�ng , Gi? h�ng c?a b?n d� du?c t?o! Vui l�ng dang nh?p d? ti?p t?c.",
                 Data = new
                 {
                     newUser.Id,

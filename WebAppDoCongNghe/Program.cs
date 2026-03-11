@@ -1,4 +1,4 @@
-﻿
+
 using BanDoCongNghe.Services.VnpayServices;
 using CloudinaryDotNet;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using WebAppDoCongNghe.Models.ApiRespone;
-using WebAppDoCongNghe.Models.Entity;
+using WebAppDoCongNghe.Models.Entities;
 using WebAppDoCongNghe.Service;
 
 namespace WebAppDoCongNghe
@@ -20,11 +20,11 @@ namespace WebAppDoCongNghe
             // Add services to the container.
             builder.Services.AddControllers();
 
-            // kết nối Sql
-            builder.Services.AddDbContext<WebAppDoCongNgheContext>(options =>
+            // kết nối PostgreSQL
+            builder.Services.AddDbContext<AppDbContext>(options =>
             {
                 var conn = builder.Configuration.GetConnectionString("MyDb");
-                options.UseSqlServer(conn);
+                options.UseNpgsql(conn);
             });
 
             // đăng ký publicService

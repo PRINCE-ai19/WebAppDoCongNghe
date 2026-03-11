@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WebAppDoCongNghe.Models.model;
 using WebAppDoCongNghe.Service;
@@ -38,7 +38,7 @@ namespace WebAppDoCongNghe.Controllers
                 return BadRequest(new
                 {
                     success = false,
-                    message = "Dữ liệu không hợp lệ."
+                    message = "D? li?u kh�ng h?p l?."
                 });
             }
 
