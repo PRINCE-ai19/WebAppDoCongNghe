@@ -102,7 +102,6 @@ namespace WebAppDoCongNghe
                         .AllowAnyMethod()
                         .AllowCredentials() //  Quan trọng cho SignalR
                         .SetIsOriginAllowed(_ => true); // Cho phép tất cả domain 
-
                     });
             });
 
