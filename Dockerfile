@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy đúng file .slnx (có chữ x) và .csproj
-COPY ["WebAppDoCongNghe.slnx", "./"]
+COPY ["WebAppDoCongNghe.sln", "./"]
 COPY ["WebAppDoCongNghe/WebAppDoCongNghe.csproj", "WebAppDoCongNghe/"]
 
 # Restore thư viện
