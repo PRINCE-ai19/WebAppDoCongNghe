@@ -96,8 +96,9 @@ namespace WebAppDoCongNghe
                 options.AddPolicy("AllowAll",
                     builder =>
                     {
-                        builder.WithOrigins(("http://localhost:5173"))
-                        .AllowAnyHeader()
+                        builder.WithOrigins("http://localhost:5173", "https://app-do-cong-nghe-eoxr.vercel.app")
+                         .AllowAnyHeader()
+                         .AllowAnyHeader()
                         .AllowAnyMethod()
                         .AllowCredentials() //  Quan trọng cho SignalR
                         .SetIsOriginAllowed(_ => true); // Cho phép tất cả domain 
